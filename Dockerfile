@@ -1,17 +1,19 @@
-FROM golang:1.21.5
+# Use the official Go image as the base image
+FROM golang:latest
 
 LABEL maintainer="Javod Mutalliboev <javodmutalliboev@gmail.com>"
 
-WORKDIR /home/javod/Desktop/Projects/Tahlilchi.uz/applications/server
+# Set the working directory in the container
+WORKDIR /app
 
-COPY go.mod go.sum ./
+# Copy the application files into the working directory
+COPY . /app
 
-RUN go mod download
-
-COPY . .
-
+# Build the application
 RUN go build -o main .
 
+# Expose port 8080
 EXPOSE 8080
 
+# Define the entry point for the container
 CMD ["./main"]
