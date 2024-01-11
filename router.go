@@ -11,7 +11,7 @@ import (
 func Router() {
 	r := mux.NewRouter()
 
-	r.HandleFunc("/", routerFuncs.Root).Methods("GET").Host(os.Getenv("HOST")).Schemes(os.Getenv("SCHEMES"))
+	r.HandleFunc("/", routerFuncs.Root).Methods("GET").Schemes(os.Getenv("SCHEMES")) // add .Host(os.Getenv("HOST")) in the end
 
 	http.ListenAndServe(":8080", r)
 }
