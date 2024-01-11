@@ -1,19 +1,22 @@
-# Use the official Go image as the base image
+# Use an official Golang runtime as a parent image
 FROM golang:latest
 
 LABEL maintainer="Javod Mutalliboev <javodmutalliboev@gmail.com>"
 
-# Set the working directory in the container
+# Set the working directory to /app
 WORKDIR /app
 
-# Copy the application files into the working directory
+# Copy the current directory contents into the container at /app
 COPY . /app
 
-# Build the application
+# Download and install any required dependencies
+RUN go mod download
+
+# Build the Go app
 RUN go build -o main .
 
-# Expose port 8080
+# Expose port 8080 for incoming traffic
 EXPOSE 8080
 
-# Define the entry point for the container
-CMD ["./main"]
+# Define the command to run the app when the container starts
+CMD ["/app/main"]
