@@ -1,19 +1,17 @@
 package main
 
 import (
-	"fmt"
-	"net/http"
+	"log"
 
-	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
 )
 
 func main() {
-	r := mux.NewRouter()
+	// Load .env file
+	err := godotenv.Load()
+	if err != nil {
+		log.Printf("Error loading .env file")
+	}
 
-	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-
-		fmt.Fprintf(w, "Tahlilchi.uz")
-	})
-
-	http.ListenAndServe(":8080", r)
+	Router()
 }
