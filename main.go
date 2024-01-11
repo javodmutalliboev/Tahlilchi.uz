@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log"
+	"fmt"
 	"os"
 	"time"
 
@@ -10,25 +10,31 @@ import (
 )
 
 func main() {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Recovered from", r)
+		}
+
+		if os.Getenv("ENVIRONMENT") == "development" {
+			go func() {
+				for {
+					exit := developer.Developer()
+
+					if exit {
+						break
+					}
+
+					time.Sleep(1 * time.Second)
+				}
+			}()
+		}
+
+		Router()
+	}()
+
 	// Load .env file
 	err := godotenv.Load()
 	if err != nil {
-		log.Printf("Error loading .env file")
+		panic(err)
 	}
-
-	if os.Getenv("ENVIRONMENT") == "development" {
-		go func() {
-			for {
-				exit := developer.Developer()
-
-				if exit {
-					break
-				}
-
-				time.Sleep(1 * time.Second)
-			}
-		}()
-	}
-
-	Router()
 }
