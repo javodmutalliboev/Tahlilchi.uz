@@ -17,11 +17,11 @@ import (
 var (
 	// key must be 16, 24 or 32 bytes long (AES-128, AES-192 or AES-256)
 	key   = []byte("Tahlilchi.uz-admin-secret-key")
-	store = sessions.NewCookieStore(key)
+	Store = sessions.NewCookieStore(key)
 )
 
 func Login(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, "admin")
+	session, _ := Store.Get(r, "admin")
 
 	// Parse form data
 	err := r.ParseForm()
