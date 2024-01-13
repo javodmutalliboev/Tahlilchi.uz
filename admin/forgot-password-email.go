@@ -49,8 +49,8 @@ func ForgotPasswordEmail(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	var res response.Response
 	if exists {
-		code := Generate6drn()
-		eSent := SendEmail("forgot-password", email, code)
+		iCode := Generate6drn()
+		eSent := SendEmail("forgot-password", email, iCode)
 		if !eSent {
 			res = response.Response{
 				Status:     "error",
@@ -62,7 +62,7 @@ func ForgotPasswordEmail(w http.ResponseWriter, r *http.Request) {
 			json.NewEncoder(w).Encode(res)
 		}
 
-		session := saveIdentificationCode(r, code)
+		session := saveIdentificationCode(r, email, iCode)
 		session.Save(r, w)
 
 		res = response.Response{
@@ -115,11 +115,12 @@ func EmailAuth() smtp.Auth {
 	return smtp.PlainAuth("", os.Getenv("EMAILFROM"), os.Getenv("EMAILFROMPASSWORD"), os.Getenv("SMTPSERVER"))
 }
 
-func saveIdentificationCode(r *http.Request, code int) *sessions.Session {
+func saveIdentificationCode(r *http.Request, email string, iCode int) *sessions.Session {
 	session, _ := Store.Get(r, "admin-forgot-password")
 
 	session.Options.HttpOnly = true
 	session.Options.MaxAge = 3600
-	session.Values["identification-code"] = code
+	session.Values["email"] = email
+	session.Values["i-code"] = iCode
 	return session
 }

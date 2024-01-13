@@ -21,7 +21,7 @@ var (
 )
 
 func Login(w http.ResponseWriter, r *http.Request) {
-	session, _ := Store.Get(r, "admin")
+	session, _ := Store.Get(r, "Tahlilchi.uz-admin")
 
 	// Parse form data
 	err := r.ParseForm()
@@ -60,6 +60,8 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Set admin as authenticated
+	session.Options.HttpOnly = true
+	session.Options.MaxAge = 3600 * 24
 	session.Values["authenticated"] = true
 	session.Values["email"] = email
 	session.Save(r, w)
