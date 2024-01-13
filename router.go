@@ -16,6 +16,7 @@ func Router() {
 	adminRouter := r.PathPrefix("/admin").Subrouter()
 	adminRouter.HandleFunc("/login", admin.Login).Methods("POST") // .Schemes(os.Getenv("SCHEMES"))
 	adminRouter.HandleFunc("/forgot-password/email", admin.ForgotPasswordEmail).Methods("POST")
+	adminRouter.HandleFunc("/forgot-password/i_code", admin.ForgotPasswordICode).Methods("POST")
 
 	http.ListenAndServe(":8080", r)
 }
