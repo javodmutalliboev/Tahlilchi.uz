@@ -62,7 +62,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	// Set admin as authenticated
 	session.Options.HttpOnly = true
 	session.Options.MaxAge = 3600 * 24
-	session.Values["authenticated"] = true
+	session.Values["#Tahlilchi.uz#-$admin$-?authenticated?"] = true
 	session.Values["email"] = email
 	session.Save(r, w)
 	w.Header().Set("Content-Type", "application/json")

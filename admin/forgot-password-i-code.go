@@ -58,7 +58,7 @@ func ForgotPasswordICode(w http.ResponseWriter, r *http.Request) {
 	}
 
 	session, _ := Store.Get(r, "admin-forgot-password")
-	session.Values["authenticated"] = true
+	session.Values["#i#-$code$-?authenticated?"] = true
 	session.Save(r, w)
 
 	res := response.Response{

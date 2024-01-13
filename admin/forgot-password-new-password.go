@@ -107,7 +107,7 @@ func HashPassword(password string) (string, error) {
 func auth(r *http.Request) authRT {
 	session, _ := Store.Get(r, "admin-forgot-password")
 
-	if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
+	if auth, ok := session.Values["#i#-$code$-?authenticated?"].(bool); !ok || !auth {
 		return authRT{status: false, message: "Forbidden"}
 	}
 
