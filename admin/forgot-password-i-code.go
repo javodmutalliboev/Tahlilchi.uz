@@ -57,6 +57,10 @@ func ForgotPasswordICode(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	session, _ := Store.Get(r, "admin-forgot-password")
+	session.Values["authenticated"] = true
+	session.Save(r, w)
+
 	res := response.Response{
 		Status:     "success",
 		StatusCode: http.StatusOK,
