@@ -39,8 +39,8 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	defer db.Close()
 
 	// Query the database
-	var dbPassword string
-	err = db.QueryRow("SELECT password FROM public.admins WHERE email = $1", email).Scan(&dbPassword)
+	var dbName, dbEmail, dbRole, dbPassword string
+	err = db.QueryRow("SELECT name, email, role, password FROM public.admins WHERE email = $1", email).Scan(&dbName, &dbEmail, &dbRole, &dbPassword)
 	if err != nil {
 		fmt.Println(err)
 		response.Res(w, "error", http.StatusInternalServerError, "Failed to query database")
@@ -60,10 +60,16 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	session.Values["#Tahlilchi.uz#-$admin$-?authenticated?"] = true
 	session.Values["email"] = email
 	session.Save(r, w)
-	response.Res(w, "success", http.StatusOK, "Login successful")
+	response.Res(w, "success", http.StatusOK, admin{Name: dbName, Email: dbEmail, Role: dbRole})
 }
 
 func CheckPasswordHash(password, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
+}
+
+type admin struct {
+	Name  string `json:"name"`
+	Email string `json:"email"`
+	Role  string `json:"role"`
 }

@@ -16,7 +16,7 @@ func ForgotPasswordNewPassword(w http.ResponseWriter, r *http.Request) {
 		res := response.Response{
 			Status:     "error",
 			StatusCode: http.StatusBadRequest,
-			Message:    err.Error(),
+			Data:       err.Error(),
 		}
 
 		json.NewEncoder(w).Encode(res)
@@ -28,7 +28,7 @@ func ForgotPasswordNewPassword(w http.ResponseWriter, r *http.Request) {
 		res := response.Response{
 			Status:     "error",
 			StatusCode: http.StatusForbidden,
-			Message:    authentication.message,
+			Data:       authentication.message,
 		}
 
 		json.NewEncoder(w).Encode(res)
@@ -40,7 +40,7 @@ func ForgotPasswordNewPassword(w http.ResponseWriter, r *http.Request) {
 		res := response.Response{
 			Status:     "error",
 			StatusCode: http.StatusBadRequest,
-			Message:    "new-password not provided",
+			Data:       "new-password not provided",
 		}
 
 		json.NewEncoder(w).Encode(res)
@@ -54,7 +54,7 @@ func ForgotPasswordNewPassword(w http.ResponseWriter, r *http.Request) {
 		res := response.Response{
 			Status:     "error",
 			StatusCode: http.StatusInternalServerError,
-			Message:    "Failed to connect to database",
+			Data:       "Failed to connect to database",
 		}
 
 		json.NewEncoder(w).Encode(res)
@@ -68,7 +68,7 @@ func ForgotPasswordNewPassword(w http.ResponseWriter, r *http.Request) {
 		res := response.Response{
 			Status:     "error",
 			StatusCode: http.StatusInternalServerError,
-			Message:    err.Error(),
+			Data:       err.Error(),
 		}
 
 		json.NewEncoder(w).Encode(res)
@@ -82,7 +82,7 @@ func ForgotPasswordNewPassword(w http.ResponseWriter, r *http.Request) {
 		res := response.Response{
 			Status:     "error",
 			StatusCode: http.StatusInternalServerError,
-			Message:    err.Error(),
+			Data:       err.Error(),
 		}
 
 		json.NewEncoder(w).Encode(res)
@@ -92,7 +92,7 @@ func ForgotPasswordNewPassword(w http.ResponseWriter, r *http.Request) {
 	res := response.Response{
 		Status:     "success",
 		StatusCode: http.StatusOK,
-		Message:    "New password has been set",
+		Data:       "New password has been set",
 	}
 
 	w.WriteHeader(http.StatusOK)

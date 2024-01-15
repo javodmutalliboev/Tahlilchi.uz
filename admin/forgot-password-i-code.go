@@ -16,7 +16,7 @@ func ForgotPasswordICode(w http.ResponseWriter, r *http.Request) {
 		res := response.Response{
 			Status:     "error",
 			StatusCode: http.StatusBadRequest,
-			Message:    err.Error(),
+			Data:       err.Error(),
 		}
 
 		json.NewEncoder(w).Encode(res)
@@ -28,7 +28,7 @@ func ForgotPasswordICode(w http.ResponseWriter, r *http.Request) {
 		res := response.Response{
 			Status:     "error",
 			StatusCode: http.StatusBadRequest,
-			Message:    "i-code not provided",
+			Data:       "i-code not provided",
 		}
 
 		json.NewEncoder(w).Encode(res)
@@ -40,7 +40,7 @@ func ForgotPasswordICode(w http.ResponseWriter, r *http.Request) {
 			res := response.Response{
 				Status:     "error",
 				StatusCode: http.StatusForbidden,
-				Message:    authentication.message,
+				Data:       authentication.message,
 			}
 
 			json.NewEncoder(w).Encode(res)
@@ -49,7 +49,7 @@ func ForgotPasswordICode(w http.ResponseWriter, r *http.Request) {
 			res := response.Response{
 				Status:     "error",
 				StatusCode: http.StatusInternalServerError,
-				Message:    authentication.message,
+				Data:       authentication.message,
 			}
 
 			json.NewEncoder(w).Encode(res)
@@ -64,7 +64,7 @@ func ForgotPasswordICode(w http.ResponseWriter, r *http.Request) {
 	res := response.Response{
 		Status:     "success",
 		StatusCode: http.StatusOK,
-		Message:    "i-code authenticated",
+		Data:       "i-code authenticated",
 	}
 
 	json.NewEncoder(w).Encode(res)

@@ -8,14 +8,14 @@ import (
 type Response struct {
 	Status     string `json:"status"`
 	StatusCode int    `json:"statusCode"`
-	Message    string `json:"message"`
+	Data       any    `json:"data"`
 }
 
-func Res(w http.ResponseWriter, status string, statusCode int, message string) {
+func Res(w http.ResponseWriter, status string, statusCode int, data any) {
 	res := Response{
 		Status:     status,
 		StatusCode: statusCode,
-		Message:    message,
+		Data:       data,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
