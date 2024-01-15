@@ -1,7 +1,6 @@
 package admin
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 	"strconv"
@@ -10,49 +9,25 @@ import (
 )
 
 func ForgotPasswordICode(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	err := r.ParseForm()
 	if err != nil {
-		res := response.Response{
-			Status:     "error",
-			StatusCode: http.StatusBadRequest,
-			Data:       err.Error(),
-		}
-
-		json.NewEncoder(w).Encode(res)
+		response.Res(w, "error", http.StatusBadRequest, err.Error())
 		return
 	}
 
 	iCode := r.Form.Get("i-code")
 	if iCode == "" {
-		res := response.Response{
-			Status:     "error",
-			StatusCode: http.StatusBadRequest,
-			Data:       "i-code not provided",
-		}
-
-		json.NewEncoder(w).Encode(res)
+		response.Res(w, "error", http.StatusBadRequest, "i-code not provided")
+		return
 	}
 
 	authentication := iCodeAuth(r, iCode)
 	if !authentication.status && authentication.message != "" {
 		if authentication.message == "Forbidden" {
-			res := response.Response{
-				Status:     "error",
-				StatusCode: http.StatusForbidden,
-				Data:       authentication.message,
-			}
-
-			json.NewEncoder(w).Encode(res)
+			response.Res(w, "error", http.StatusForbidden, authentication.message)
 			return
 		} else {
-			res := response.Response{
-				Status:     "error",
-				StatusCode: http.StatusInternalServerError,
-				Data:       authentication.message,
-			}
-
-			json.NewEncoder(w).Encode(res)
+			response.Res(w, "error", http.StatusInternalServerError, authentication.message)
 			return
 		}
 	}
@@ -61,13 +36,7 @@ func ForgotPasswordICode(w http.ResponseWriter, r *http.Request) {
 	session.Values["#i#-$code$-?authenticated?"] = true
 	session.Save(r, w)
 
-	res := response.Response{
-		Status:     "success",
-		StatusCode: http.StatusOK,
-		Data:       "i-code authenticated",
-	}
-
-	json.NewEncoder(w).Encode(res)
+	response.Res(w, "success", http.StatusOK, "i-code authenticated")
 }
 
 func iCodeAuth(r *http.Request, iCode string) iCodeAuthRT {
