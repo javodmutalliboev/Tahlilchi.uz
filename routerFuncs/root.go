@@ -1,8 +1,9 @@
 package routerFuncs
 
 import (
-	"encoding/json"
 	"net/http"
+
+	"Tahlilchi.uz/response"
 )
 
 type RootMessage struct {
@@ -10,10 +11,7 @@ type RootMessage struct {
 }
 
 func Root(w http.ResponseWriter, r *http.Request) {
-	message := RootMessage{
-		Server: "Tahlilchi.uz",
-	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(message)
+	response.Res(w, "success", http.StatusOK, "Tahlilchi.uz server")
+
 }
