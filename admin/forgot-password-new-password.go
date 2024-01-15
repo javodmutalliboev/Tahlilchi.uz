@@ -1,7 +1,6 @@
 package admin
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"Tahlilchi.uz/db"
@@ -10,54 +9,29 @@ import (
 )
 
 func ForgotPasswordNewPassword(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	err := r.ParseForm()
 	if err != nil {
-		res := response.Response{
-			Status:     "error",
-			StatusCode: http.StatusBadRequest,
-			Data:       err.Error(),
-		}
-
-		json.NewEncoder(w).Encode(res)
+		response.Res(w, "error", http.StatusBadRequest, err.Error())
 		return
 	}
 
 	authentication := auth(r)
 	if !authentication.status && authentication.message != "" {
-		res := response.Response{
-			Status:     "error",
-			StatusCode: http.StatusForbidden,
-			Data:       authentication.message,
-		}
-
-		json.NewEncoder(w).Encode(res)
+		response.Res(w, "error", http.StatusForbidden, authentication.message)
 		return
 	}
 
 	newPassword := r.Form.Get("new-password")
 	if newPassword == "" {
-		res := response.Response{
-			Status:     "error",
-			StatusCode: http.StatusBadRequest,
-			Data:       "new-password not provided",
-		}
-
-		json.NewEncoder(w).Encode(res)
+		response.Res(w, "error", http.StatusBadRequest, "new-password not provided")
+		return
 	}
 
 	hash, _ := HashPassword(newPassword)
 
 	db, err := db.DB()
 	if err != nil {
-		// http.Error(w, "Failed to connect to database", http.StatusInternalServerError)
-		res := response.Response{
-			Status:     "error",
-			StatusCode: http.StatusInternalServerError,
-			Data:       "Failed to connect to database",
-		}
-
-		json.NewEncoder(w).Encode(res)
+		response.Res(w, "error", http.StatusInternalServerError, "Failed to connect to database")
 		return
 	}
 	defer db.Close()
@@ -65,13 +39,7 @@ func ForgotPasswordNewPassword(w http.ResponseWriter, r *http.Request) {
 	// Update statement
 	stmt, err := db.Prepare("UPDATE public.admins SET password = $1 WHERE email = $2")
 	if err != nil {
-		res := response.Response{
-			Status:     "error",
-			StatusCode: http.StatusInternalServerError,
-			Data:       err.Error(),
-		}
-
-		json.NewEncoder(w).Encode(res)
+		response.Res(w, "error", http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -79,24 +47,11 @@ func ForgotPasswordNewPassword(w http.ResponseWriter, r *http.Request) {
 	email := session.Values["email"].(string)
 	_, err = stmt.Exec(hash, email)
 	if err != nil {
-		res := response.Response{
-			Status:     "error",
-			StatusCode: http.StatusInternalServerError,
-			Data:       err.Error(),
-		}
-
-		json.NewEncoder(w).Encode(res)
+		response.Res(w, "error", http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	res := response.Response{
-		Status:     "success",
-		StatusCode: http.StatusOK,
-		Data:       "New password has been set",
-	}
-
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(res)
+	response.Res(w, "success", http.StatusOK, "New password has been set")
 }
 
 func HashPassword(password string) (string, error) {
