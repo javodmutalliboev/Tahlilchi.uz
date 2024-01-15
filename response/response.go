@@ -11,13 +11,14 @@ type Response struct {
 	Message    string `json:"message"`
 }
 
-func Res(w http.ResponseWriter, Status string, StatusCode int, Message string) {
+func Res(w http.ResponseWriter, status string, statusCode int, message string) {
 	res := Response{
-		Status:     Status,
-		StatusCode: StatusCode,
-		Message:    Message,
+		Status:     status,
+		StatusCode: statusCode,
+		Message:    message,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
 	json.NewEncoder(w).Encode(res)
 }

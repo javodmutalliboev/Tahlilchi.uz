@@ -2,8 +2,6 @@ package admin
 
 import (
 	"database/sql"
-	"encoding/json"
-	"fmt"
 	"log"
 	"math/rand"
 	"net/http"
@@ -11,6 +9,7 @@ import (
 	"os"
 	"strconv"
 
+	"Tahlilchi.uz/db"
 	"Tahlilchi.uz/response"
 	"github.com/gorilla/sessions"
 )
@@ -18,23 +17,20 @@ import (
 func ForgotPasswordEmail(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		response.Res(w, "error", http.StatusBadRequest, err.Error())
 		return
 	}
 
 	email := r.Form.Get("email")
 	if email == "" {
-		http.Error(w, "email is required", http.StatusBadRequest)
+		response.Res(w, "error", http.StatusBadRequest, "email is required")
 		return
 	}
 
 	// Connect to the database
-	port, _ := strconv.Atoi(os.Getenv("DBPORT"))
-	psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
-		os.Getenv("DBHOST"), port, os.Getenv("DBUSER"), os.Getenv("DBPASSWORD"), os.Getenv("DBNAME"))
-	db, err := sql.Open("postgres", psqlconn)
+	db, err := db.DB()
 	if err != nil {
-		http.Error(w, "Failed to connect to database", http.StatusInternalServerError)
+		response.Res(w, "error", http.StatusInternalServerError, "Failed to connect to database")
 		return
 	}
 	defer db.Close()
@@ -42,46 +38,25 @@ func ForgotPasswordEmail(w http.ResponseWriter, r *http.Request) {
 	var exists bool
 	err = db.QueryRow("SELECT exists (SELECT 1 FROM public.admins WHERE email=$1)", email).Scan(&exists)
 	if err != nil && err != sql.ErrNoRows {
-		http.Error(w, "Database query error", http.StatusInternalServerError)
 		log.Println(err)
+		response.Res(w, "error", http.StatusInternalServerError, "Database query error")
+		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	var res response.Response
 	if exists {
 		iCode := Generate6drn()
 		eSent := SendEmail("forgot-password", email, iCode)
 		if !eSent {
-			res = response.Response{
-				Status:     "error",
-				StatusCode: http.StatusInternalServerError,
-				Message:    "unknown event",
-			}
-
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(res)
+			response.Res(w, "error", http.StatusInternalServerError, "unknown event")
+			return
 		}
 
 		session := saveIdentificationCode(r, email, iCode)
 		session.Save(r, w)
 
-		res = response.Response{
-			Status:     "success",
-			StatusCode: http.StatusOK,
-			Message:    "Code sent to the email",
-		}
-
-		w.WriteHeader(http.StatusOK)   // Set the HTTP status code to 200
-		json.NewEncoder(w).Encode(res) // Encode the response into JSON
+		response.Res(w, "success", http.StatusOK, "Code sent to the email")
 	} else {
-		res = response.Response{
-			Status:     "error",
-			StatusCode: http.StatusNotFound,
-			Message:    "Email not found",
-		}
-
-		w.WriteHeader(http.StatusNotFound) // Set the HTTP status code to 404
-		json.NewEncoder(w).Encode(res)     // Encode the response into JSON
+		response.Res(w, "error", http.StatusNotFound, "Email not found")
 	}
 }
 
@@ -93,9 +68,9 @@ func SendEmail(event string, to string, code int) bool {
 		// Connect to the server, authenticate, set the sender and recipient,
 		// and send the email all in one step.
 		msg := []byte("To: " + to + "\r\n" +
-			"Subject: Identification code\r\n" +
+			"Subject: Tahlilchi.uz administratori parolini unutgan vaqt uchun administrator identifikatsiya kodi | Tahlilchi.uz администратори паролини унутган вақт учун администратор идентификация коди\r\n" +
 			"\r\n" +
-			"The code: " + strconv.Itoa(code) + ". Please, do not give this code to anyone. Otherwise, your profile's security will go into risk" + "\r\n")
+			"Kod | Код: " + strconv.Itoa(code) + ". Iltimos, bu kodni hech kimga bermang. Aks holda, profilingiz xavfsizligi xavf ostida qoladi. | Илтимос, бу кодни ҳеч кимга берманг. Акс ҳолда, профилингиз хавфсизлиги хавф остида қолади." + "\r\n")
 		err := smtp.SendMail(os.Getenv("SMTPSERVER")+":"+os.Getenv("SMTPPORT"), auth, os.Getenv("EMAILFROM"), []string{to}, msg)
 		if err != nil {
 			log.Println(err)
