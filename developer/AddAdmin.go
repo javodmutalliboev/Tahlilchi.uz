@@ -8,7 +8,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"time"
 
 	_ "github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
@@ -69,9 +68,9 @@ func AddAdmin() {
 		panic(err)
 	}
 
-	insertStmt := `INSERT INTO public.admins (name, email, role, password, created_at) VALUES ($1, $2, $3, $4, $5)`
+	insertStmt := `INSERT INTO public.admins (name, email, role, password) VALUES ($1, $2, $3, $4)`
 
-	_, err = db.Exec(insertStmt, name, email, role, password, time.Now())
+	_, err = db.Exec(insertStmt, name, email, role, password)
 	if err != nil {
 		panic(err)
 	}
