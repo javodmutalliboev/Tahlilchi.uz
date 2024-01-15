@@ -46,8 +46,8 @@ func ForgotPasswordEmail(w http.ResponseWriter, r *http.Request) {
 	if exists {
 		iCode := Generate6drn()
 		eSent := SendEmail("forgot-password", email, iCode)
-		if !eSent {
-			response.Res(w, "error", http.StatusInternalServerError, "unknown event")
+		if !eSent.Status {
+			response.Res(w, "error", http.StatusInternalServerError, eSent.Message)
 			return
 		}
 
@@ -60,7 +60,12 @@ func ForgotPasswordEmail(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func SendEmail(event string, to string, code int) bool {
+type emailStatus struct {
+	Status  bool
+	Message string
+}
+
+func SendEmail(event string, to string, code int) emailStatus {
 	if event == "forgot-password" {
 		// Set up authentication information.
 		auth := EmailAuth()
@@ -74,12 +79,12 @@ func SendEmail(event string, to string, code int) bool {
 		err := smtp.SendMail(os.Getenv("SMTPSERVER")+":"+os.Getenv("SMTPPORT"), auth, os.Getenv("EMAILFROM"), []string{to}, msg)
 		if err != nil {
 			log.Println(err)
-			return false
+			return emailStatus{Status: false, Message: err.Error()}
 		}
 
-		return true
+		return emailStatus{Status: true, Message: ""}
 	}
-	return false
+	return emailStatus{Status: false, Message: "unknown event"}
 }
 
 func Generate6drn() int {
