@@ -51,6 +51,8 @@ func ForgotPasswordNewPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	session.Options.MaxAge = -1
+	session.Save(r, w)
 	response.Res(w, "success", http.StatusOK, "New password has been set")
 }
 
