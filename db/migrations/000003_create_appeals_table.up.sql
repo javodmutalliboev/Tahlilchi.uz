@@ -1,0 +1,10 @@
+CREATE TABLE IF NOT EXISTS appeals(
+    id BIGSERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    surname TEXT NOT NULL,
+	phone_number TEXT NOT NULL,
+	message TEXT NOT NULL,
+	picture BYTEA,
+    video BYTEA,
+	created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
