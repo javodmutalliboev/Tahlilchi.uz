@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"Tahlilchi.uz/developer"
+	"Tahlilchi.uz/telegramBot"
 	"github.com/joho/godotenv"
 )
 
@@ -28,6 +29,10 @@ func main() {
 				}
 			}()
 		}
+
+		go func() {
+			telegramBot.Main()
+		}()
 
 		Router()
 	}()
