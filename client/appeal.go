@@ -1,12 +1,17 @@
 package client
 
 import (
+	"database/sql"
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"strconv"
 
 	"Tahlilchi.uz/db"
 	"Tahlilchi.uz/response"
+	"Tahlilchi.uz/telegramBot"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 func Appeal(w http.ResponseWriter, r *http.Request) {
@@ -106,9 +111,9 @@ func Appeal(w http.ResponseWriter, r *http.Request) {
 	}
 	defer db.Close()
 
-	sqlStatement := `INSERT INTO appeals (name, surname, phone_number, message, picture, video) VALUES ($1, $2, $3, $4, $5, $6)`
-
-	_, err = db.Exec(sqlStatement, name, surname, phoneNumber, message, picture, video)
+	sqlStatement := `INSERT INTO appeals (name, surname, phone_number, message, picture, video) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`
+	var id int64
+	err = db.QueryRow(sqlStatement, name, surname, phoneNumber, message, picture, video).Scan(&id)
 	if err != nil {
 		fmt.Println(err)
 		response.Res(w, "error", http.StatusInternalServerError, err.Error())
@@ -116,6 +121,72 @@ func Appeal(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.Res(w, "success", http.StatusCreated, "The appeal form has been submitted successfully.")
+
+	err = sendToTBot(db, id)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+func sendToTBot(db *sql.DB, id int64) error {
+	// Query the database
+	row := db.QueryRow("SELECT name, surname, phone_number, message FROM appeals WHERE id = $1", id)
+	rowPV := db.QueryRow("SELECT picture, video FROM appeals WHERE id = $1", id)
+
+	var name, surname, phoneNumber, message string
+	var picture, video []byte
+	err := row.Scan(&name, &surname, &phoneNumber, &message)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// Handle no rows returned
+		} else {
+			return err
+		}
+	}
+	err = rowPV.Scan(&picture, &video)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// Handle no rows returned
+		} else {
+			return err
+		}
+	}
+
+	// Create a new Telegram bot
+	bot, err := telegramBot.TBot()
+	if err != nil {
+		return err
+	}
+
+	// Send a message to the Telegram bot
+	chatID, _ := strconv.ParseInt(os.Getenv("TELEGRAM_CHAT_ID"), 10, 64)
+	msg := tgbotapi.NewMessage(chatID, fmt.Sprintf("Yangi murojaat keldi | Янги мурожаат келди\nMurojaatchining ismi | Мурожаатчининг исми: %s\nFamiliyasi | Фамилияси: %s\nTelefon raqami | Телефон рақами: %s\nXabar | Хабар: %s", name, surname, phoneNumber, message))
+
+	_, err = bot.Send(msg)
+	if err != nil {
+		return err
+	}
+
+	// Send the picture to the Telegram Bot, if it exists
+	if picture != nil {
+		pic := tgbotapi.NewPhotoUpload(chatID, tgbotapi.FileBytes{Name: "picture.jpg", Bytes: picture})
+		_, err = bot.Send(pic)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Send the video to the Telegram Bot, if it exists
+	if video != nil {
+		vid := tgbotapi.NewVideoUpload(chatID, tgbotapi.FileBytes{Name: "video.mp4", Bytes: video})
+		_, err = bot.Send(vid)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 /*

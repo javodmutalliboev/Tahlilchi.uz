@@ -3,33 +3,40 @@ package telegramBot
 import (
 	"log"
 	"os"
-	"strconv"
-	"time"
 
-	"github.com/yanzay/tbot"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
-func Main() {
-	bot, err := tbot.NewServer(os.Getenv("TELEGRAM_TOKEN"))
+func TBot() (*tgbotapi.BotAPI, error) {
+	// Create a new Telegram bot
+	bot, err := tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_TOKEN"))
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-	bot.Handle("/answer", "42")
-	bot.HandleFunc("/timer {seconds}", timerHandler)
 
-	bot.ListenAndServe()
+	return bot, nil
 }
 
-func timerHandler(m *tbot.Message) {
-	// m.Vars contains all variables, parsed during routing
-	secondsStr := m.Vars["seconds"]
-	// Convert string variable to integer seconds value
-	seconds, err := strconv.Atoi(secondsStr)
+func ChatID() {
+	bot, err := tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_TOKEN"))
 	if err != nil {
-		m.Reply("Invalid number of seconds")
-		return
+		log.Panic(err)
 	}
-	m.Replyf("Timer for %d seconds started", seconds)
-	time.Sleep(time.Duration(seconds) * time.Second)
-	m.Reply("Time out!")
+
+	u := tgbotapi.NewUpdate(0)
+	u.Timeout = 60
+
+	updates, err := bot.GetUpdatesChan(u)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	for update := range updates {
+		if update.Message == nil {
+			continue
+		}
+
+		chatID := update.Message.Chat.ID
+		log.Printf("Chat ID: %d", chatID)
+	}
 }

@@ -3,6 +3,8 @@ package developer
 import (
 	"fmt"
 	"log"
+
+	"Tahlilchi.uz/telegramBot"
 )
 
 func Developer() bool {
@@ -11,6 +13,7 @@ func Developer() bool {
 	log.Println("Hello, developer.")
 	fmt.Println("1. Exit")
 	fmt.Println("2. Add admin")
+	fmt.Println("3. Get telegram bot chat id")
 	fmt.Println("What do you want to do? Please enter 1 or 2:")
 	var decision int
 	_, err := fmt.Scan(&decision)
@@ -25,6 +28,8 @@ func Developer() bool {
 	} else if decision == 2 {
 		// AddAdmin
 		AddAdmin()
+	} else if decision == 3 {
+		telegramBot.ChatID()
 	}
 
 	exit = true
