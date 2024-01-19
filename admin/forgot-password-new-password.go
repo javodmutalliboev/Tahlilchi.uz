@@ -4,8 +4,8 @@ import (
 	"log"
 	"net/http"
 
+	"Tahlilchi.uz/authPackage"
 	"Tahlilchi.uz/db"
-	"Tahlilchi.uz/middleware"
 	"Tahlilchi.uz/response"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -47,7 +47,7 @@ func forgotPasswordNewPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, _ := middleware.Store.Get(r, "admin-forgot-password")
+	session, _ := authPackage.Store.Get(r, "admin-forgot-password")
 	email := session.Values["email"].(string)
 	_, err = stmt.Exec(hash, email)
 	if err != nil {
@@ -67,7 +67,7 @@ func hashPassword(password string) (string, error) {
 }
 
 func auth(r *http.Request) authRT {
-	session, _ := middleware.Store.Get(r, "admin-forgot-password")
+	session, _ := authPackage.Store.Get(r, "admin-forgot-password")
 
 	if auth, ok := session.Values["#i#-$code$-?authenticated?"].(bool); !ok || !auth {
 		return authRT{status: false, message: "Forbidden"}

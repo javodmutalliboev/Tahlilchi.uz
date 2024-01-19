@@ -1,6 +1,7 @@
 package admin
 
 import (
+	"Tahlilchi.uz/authPackage"
 	"Tahlilchi.uz/middleware"
 	"github.com/gorilla/mux"
 )
@@ -15,7 +16,7 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	forgotPasswordRouter.HandleFunc("/new-password", forgotPasswordNewPassword).Methods("POST")
 
 	newsRouter := adminRouter.PathPrefix("/news").Subrouter()
-	newsRouter.HandleFunc("/category", middleware.Chain(addCategory, middleware.AdminAuth())).Methods("POST")
+	newsRouter.HandleFunc("/category", middleware.Chain(addCategory, authPackage.AdminAuth())).Methods("POST")
 
 	return adminRouter
 }

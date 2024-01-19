@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"Tahlilchi.uz/middleware"
+	"Tahlilchi.uz/authPackage"
 	"Tahlilchi.uz/response"
 )
 
@@ -33,7 +33,7 @@ func forgotPasswordICode(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	session, _ := middleware.Store.Get(r, "admin-forgot-password")
+	session, _ := authPackage.Store.Get(r, "admin-forgot-password")
 	session.Values["#i#-$code$-?authenticated?"] = true
 	session.Save(r, w)
 
@@ -41,7 +41,7 @@ func forgotPasswordICode(w http.ResponseWriter, r *http.Request) {
 }
 
 func iCodeAuth(r *http.Request, iCode string) iCodeAuthRT {
-	session, _ := middleware.Store.Get(r, "admin-forgot-password")
+	session, _ := authPackage.Store.Get(r, "admin-forgot-password")
 
 	iCodeI, err := strconv.Atoi(iCode)
 	if err != nil {

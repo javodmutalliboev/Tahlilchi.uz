@@ -5,8 +5,8 @@ import (
 	"log"
 	"net/http"
 
+	"Tahlilchi.uz/authPackage"
 	"Tahlilchi.uz/db"
-	"Tahlilchi.uz/middleware"
 	"Tahlilchi.uz/response"
 	"golang.org/x/crypto/bcrypt"
 
@@ -14,7 +14,7 @@ import (
 )
 
 func login(w http.ResponseWriter, r *http.Request) {
-	session, _ := middleware.Store.Get(r, "Tahlilchi.uz-admin")
+	session, _ := authPackage.Store.Get(r, "Tahlilchi.uz-admin")
 
 	// Parse form data
 	err := r.ParseForm()

@@ -9,8 +9,8 @@ import (
 	"os"
 	"strconv"
 
+	"Tahlilchi.uz/authPackage"
 	"Tahlilchi.uz/db"
-	"Tahlilchi.uz/middleware"
 	"Tahlilchi.uz/response"
 	"github.com/gorilla/sessions"
 )
@@ -98,7 +98,7 @@ func emailAuth() smtp.Auth {
 }
 
 func saveIdentificationCode(r *http.Request, email string, iCode int) *sessions.Session {
-	session, _ := middleware.Store.Get(r, "admin-forgot-password")
+	session, _ := authPackage.Store.Get(r, "admin-forgot-password")
 
 	session.Options.HttpOnly = true
 	session.Options.MaxAge = 3600

@@ -1,8 +1,9 @@
-package middleware
+package authPackage
 
 import (
 	"net/http"
 
+	"Tahlilchi.uz/middleware"
 	"Tahlilchi.uz/response"
 	"github.com/gorilla/sessions"
 )
@@ -13,7 +14,7 @@ var (
 	Store = sessions.NewCookieStore(key)
 )
 
-func AdminAuth() Middleware {
+func AdminAuth() middleware.Middleware {
 
 	// Create a new Middleware
 	return func(f http.HandlerFunc) http.HandlerFunc {
