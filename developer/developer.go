@@ -14,7 +14,7 @@ func Developer() bool {
 	fmt.Println("1. Exit")
 	fmt.Println("2. Add admin")
 	fmt.Println("3. Get telegram bot chat id")
-	fmt.Println("What do you want to do? Please enter 1 or 2:")
+	fmt.Println("What do you want to do? Please enter 1 or 2 or 3:")
 	var decision int
 	_, err := fmt.Scan(&decision)
 
