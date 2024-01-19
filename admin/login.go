@@ -2,24 +2,19 @@ package admin
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 
 	"Tahlilchi.uz/db"
+	"Tahlilchi.uz/middleware"
 	"Tahlilchi.uz/response"
-	"github.com/gorilla/sessions"
 	"golang.org/x/crypto/bcrypt"
 
 	_ "github.com/lib/pq"
 )
 
-var (
-	// key must be 16, 24 or 32 bytes long (AES-128, AES-192 or AES-256)
-	key   = []byte("Tahlilchi.uz-admin-secret-key")
-	Store = sessions.NewCookieStore(key)
-)
-
-func Login(w http.ResponseWriter, r *http.Request) {
-	session, _ := Store.Get(r, "Tahlilchi.uz-admin")
+func login(w http.ResponseWriter, r *http.Request) {
+	session, _ := middleware.Store.Get(r, "Tahlilchi.uz-admin")
 
 	// Parse form data
 	err := r.ParseForm()
@@ -33,7 +28,8 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	// Connect to the database
 	db, err := db.DB()
 	if err != nil {
-		response.Res(w, "error", http.StatusInternalServerError, "Failed to connect to database")
+		log.Println(err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
 	defer db.Close()
@@ -43,12 +39,12 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	err = db.QueryRow("SELECT name, email, role, password FROM public.admins WHERE email = $1", email).Scan(&dbName, &dbEmail, &dbRole, &dbPassword)
 	if err != nil {
 		fmt.Println(err)
-		response.Res(w, "error", http.StatusInternalServerError, "Failed to query database")
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
 
 	// Check password
-	authenticated := CheckPasswordHash(password, dbPassword)
+	authenticated := checkPasswordHash(password, dbPassword)
 	if !authenticated {
 		response.Res(w, "error", http.StatusUnauthorized, "Invalid login credentials")
 		return
@@ -63,7 +59,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	response.Res(w, "success", http.StatusOK, admin{Name: dbName, Email: dbEmail, Role: dbRole})
 }
 
-func CheckPasswordHash(password, hash string) bool {
+func checkPasswordHash(password, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
 }

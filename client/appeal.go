@@ -18,7 +18,7 @@ func Appeal(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseMultipartForm(10 << 20) // Max memory 10MB
 	if err != nil {
 		fmt.Println(err)
-		response.Res(w, "error", http.StatusInternalServerError, err.Error())
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
 
@@ -53,7 +53,7 @@ func Appeal(w http.ResponseWriter, r *http.Request) {
 		picture = []byte{}
 	} else if err != nil {
 		fmt.Println(err)
-		response.Res(w, "error", http.StatusInternalServerError, err.Error())
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	} else {
 		// Get the size of the file
@@ -70,7 +70,7 @@ func Appeal(w http.ResponseWriter, r *http.Request) {
 		picture, err = io.ReadAll(pictureFile)
 		if err != nil {
 			fmt.Println(err)
-			response.Res(w, "error", http.StatusInternalServerError, err.Error())
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
 			return
 		}
 	}
@@ -81,7 +81,7 @@ func Appeal(w http.ResponseWriter, r *http.Request) {
 		video = []byte{}
 	} else if err != nil {
 		fmt.Println(err)
-		response.Res(w, "error", http.StatusInternalServerError, err.Error())
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	} else {
 		// Get the size of the file
@@ -98,7 +98,7 @@ func Appeal(w http.ResponseWriter, r *http.Request) {
 		video, err = io.ReadAll(videoFile)
 		if err != nil {
 			fmt.Println(err)
-			response.Res(w, "error", http.StatusInternalServerError, err.Error())
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
 			return
 		}
 	}
@@ -106,7 +106,7 @@ func Appeal(w http.ResponseWriter, r *http.Request) {
 	db, err := db.DB()
 	if err != nil {
 		fmt.Println(err)
-		response.Res(w, "error", http.StatusInternalServerError, err.Error())
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
 	defer db.Close()
@@ -116,7 +116,7 @@ func Appeal(w http.ResponseWriter, r *http.Request) {
 	err = db.QueryRow(sqlStatement, name, surname, phoneNumber, message, picture, video).Scan(&id)
 	if err != nil {
 		fmt.Println(err)
-		response.Res(w, "error", http.StatusInternalServerError, err.Error())
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
 

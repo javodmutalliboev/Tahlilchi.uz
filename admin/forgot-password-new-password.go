@@ -1,14 +1,16 @@
 package admin
 
 import (
+	"log"
 	"net/http"
 
 	"Tahlilchi.uz/db"
+	"Tahlilchi.uz/middleware"
 	"Tahlilchi.uz/response"
 	"golang.org/x/crypto/bcrypt"
 )
 
-func ForgotPasswordNewPassword(w http.ResponseWriter, r *http.Request) {
+func forgotPasswordNewPassword(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
 		response.Res(w, "error", http.StatusBadRequest, err.Error())
@@ -27,11 +29,12 @@ func ForgotPasswordNewPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hash, _ := HashPassword(newPassword)
+	hash, _ := hashPassword(newPassword)
 
 	db, err := db.DB()
 	if err != nil {
-		response.Res(w, "error", http.StatusInternalServerError, "Failed to connect to database")
+		log.Println(err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
 	defer db.Close()
@@ -39,15 +42,17 @@ func ForgotPasswordNewPassword(w http.ResponseWriter, r *http.Request) {
 	// Update statement
 	stmt, err := db.Prepare("UPDATE public.admins SET password = $1 WHERE email = $2")
 	if err != nil {
-		response.Res(w, "error", http.StatusInternalServerError, err.Error())
+		log.Println(err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
 
-	session, _ := Store.Get(r, "admin-forgot-password")
+	session, _ := middleware.Store.Get(r, "admin-forgot-password")
 	email := session.Values["email"].(string)
 	_, err = stmt.Exec(hash, email)
 	if err != nil {
-		response.Res(w, "error", http.StatusInternalServerError, err.Error())
+		log.Println(err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
 
@@ -56,13 +61,13 @@ func ForgotPasswordNewPassword(w http.ResponseWriter, r *http.Request) {
 	response.Res(w, "success", http.StatusOK, "New password has been set")
 }
 
-func HashPassword(password string) (string, error) {
+func hashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
 	return string(bytes), err
 }
 
 func auth(r *http.Request) authRT {
-	session, _ := Store.Get(r, "admin-forgot-password")
+	session, _ := middleware.Store.Get(r, "admin-forgot-password")
 
 	if auth, ok := session.Values["#i#-$code$-?authenticated?"].(bool); !ok || !auth {
 		return authRT{status: false, message: "Forbidden"}

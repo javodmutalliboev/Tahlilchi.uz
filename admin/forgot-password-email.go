@@ -10,11 +10,12 @@ import (
 	"strconv"
 
 	"Tahlilchi.uz/db"
+	"Tahlilchi.uz/middleware"
 	"Tahlilchi.uz/response"
 	"github.com/gorilla/sessions"
 )
 
-func ForgotPasswordEmail(w http.ResponseWriter, r *http.Request) {
+func forgotPasswordEmail(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
 		response.Res(w, "error", http.StatusBadRequest, err.Error())
@@ -30,7 +31,8 @@ func ForgotPasswordEmail(w http.ResponseWriter, r *http.Request) {
 	// Connect to the database
 	db, err := db.DB()
 	if err != nil {
-		response.Res(w, "error", http.StatusInternalServerError, "Failed to connect to database")
+		log.Println(err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
 	defer db.Close()
@@ -39,13 +41,13 @@ func ForgotPasswordEmail(w http.ResponseWriter, r *http.Request) {
 	err = db.QueryRow("SELECT exists (SELECT 1 FROM public.admins WHERE email=$1)", email).Scan(&exists)
 	if err != nil && err != sql.ErrNoRows {
 		log.Println(err)
-		response.Res(w, "error", http.StatusInternalServerError, "Database query error")
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
 
 	if exists {
-		iCode := Generate6drn()
-		eSent := SendEmail("forgot-password", email, iCode)
+		iCode := generate6drn()
+		eSent := sendEmail("forgot-password", email, iCode)
 		if !eSent.Status {
 			response.Res(w, "error", http.StatusInternalServerError, eSent.Message)
 			return
@@ -65,10 +67,10 @@ type emailStatus struct {
 	Message string
 }
 
-func SendEmail(event string, to string, code int) emailStatus {
+func sendEmail(event string, to string, code int) emailStatus {
 	if event == "forgot-password" {
 		// Set up authentication information.
-		auth := EmailAuth()
+		auth := emailAuth()
 
 		// Connect to the server, authenticate, set the sender and recipient,
 		// and send the email all in one step.
@@ -87,16 +89,16 @@ func SendEmail(event string, to string, code int) emailStatus {
 	return emailStatus{Status: false, Message: "unknown event"}
 }
 
-func Generate6drn() int {
+func generate6drn() int {
 	return rand.Intn(900000) + 100000
 }
 
-func EmailAuth() smtp.Auth {
+func emailAuth() smtp.Auth {
 	return smtp.PlainAuth("", os.Getenv("EMAILFROM"), os.Getenv("EMAILFROMPASSWORD"), os.Getenv("SMTPSERVER"))
 }
 
 func saveIdentificationCode(r *http.Request, email string, iCode int) *sessions.Session {
-	session, _ := Store.Get(r, "admin-forgot-password")
+	session, _ := middleware.Store.Get(r, "admin-forgot-password")
 
 	session.Options.HttpOnly = true
 	session.Options.MaxAge = 3600
