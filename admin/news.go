@@ -10,8 +10,10 @@ import (
 )
 
 type Category struct {
-	Title       string
-	Description string
+	TitleLatin          string
+	DescriptionLatin    string
+	TitleCyrillic       string
+	DescriptionCyrillic string
 }
 
 func addCategory(w http.ResponseWriter, r *http.Request) {
@@ -24,28 +26,26 @@ func addCategory(w http.ResponseWriter, r *http.Request) {
 	defer db.Close()
 
 	var c Category
-	c.Title = r.FormValue("title")
-	c.Description = r.FormValue("description")
+	c.TitleLatin = r.FormValue("title_latin")
+	c.DescriptionLatin = r.FormValue("description_latin")
+	c.TitleCyrillic = r.FormValue("title_cyrillic")
+	c.DescriptionCyrillic = r.FormValue("description_cyrillic")
 
-	if c.Title == "" {
-		response.Res(w, "error", http.StatusBadRequest, "Title is required")
+	if c.TitleLatin == "" {
+		response.Res(w, "error", http.StatusBadRequest, "Title latin is required")
 		return
 	}
 
-	if c.Description == "" {
-		_, err := db.Exec("INSERT INTO news_category(title) VALUES($1)", c.Title)
-		if err != nil {
-			log.Println(err)
-			response.Res(w, "error", http.StatusInternalServerError, "server error")
-			return
-		}
-	} else {
-		_, err := db.Exec("INSERT INTO news_category(title, description) VALUES($1, $2)", c.Title, c.Description)
-		if err != nil {
-			log.Println(err)
-			response.Res(w, "error", http.StatusInternalServerError, "server error")
-			return
-		}
+	if c.TitleCyrillic == "" {
+		response.Res(w, "error", http.StatusBadRequest, "Title cyrillic is required")
+		return
+	}
+
+	_, err = db.Exec("INSERT INTO news_category(title_latin, description_latin, title_cyrillic, description_cyrillic) VALUES($1, $2, $3, $4)", c.TitleLatin, c.DescriptionLatin, c.TitleCyrillic, c.DescriptionCyrillic)
+	if err != nil {
+		log.Println(err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
 	}
 
 	response.Res(w, "success", http.StatusCreated, "Category Added")
