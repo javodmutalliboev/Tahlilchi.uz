@@ -2,8 +2,10 @@ package admin
 
 import (
 	"encoding/json"
+	"io"
 	"log"
 	"net/http"
+	"strings"
 
 	"Tahlilchi.uz/db"
 	"Tahlilchi.uz/response"
@@ -132,4 +134,121 @@ func addRegions(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.Res(w, "success", http.StatusCreated, "Regions added successfully")
+}
+
+func addNewsPost(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseMultipartForm(15 << 20) // Max memory 15MB
+	if err != nil {
+		log.Println(err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	title_latin := r.FormValue("title_latin")
+	description_latin := r.FormValue("description_latin")
+	title_cyrillic := r.FormValue("title_cyrillic")
+	description_cyrillic := r.FormValue("description_cyrillic")
+
+	// Check if required fields are not empty
+	if title_latin == "" || description_latin == "" || title_cyrillic == "" || description_cyrillic == "" {
+		response.Res(w, "error", http.StatusBadRequest, "Required fields are missing")
+		return
+	}
+
+	photo, photo_header, err := r.FormFile("photo")
+	var photoForDB []byte
+	if err != nil && err != http.ErrMissingFile {
+		log.Printf("photo: %v", err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	} else if err == http.ErrMissingFile {
+		photoForDB = nil
+	} else {
+		// Check size limits
+		if photo_header.Size > int64(2<<20) {
+			response.Res(w, "error", http.StatusBadRequest, "Photo exceeds 2MB limit")
+			return
+		}
+		photoForDB, _ = io.ReadAll(photo)
+		photo.Close()
+	}
+
+	video, video_header, err := r.FormFile("video")
+	var videoForDB []byte
+	if err != nil && err != http.ErrMissingFile {
+		log.Printf("video: %v", err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	} else if err == http.ErrMissingFile {
+		videoForDB = nil
+	} else {
+		if video_header.Size > int64(6<<20) {
+			response.Res(w, "error", http.StatusBadRequest, "Video exceeds 6MB limit")
+			return
+		}
+		videoForDB, _ = io.ReadAll(video)
+		video.Close()
+	}
+
+	audio, audio_header, err := r.FormFile("audio")
+	var audioForDB []byte
+	if err != nil && err != http.ErrMissingFile {
+		log.Printf("audio: %v", err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	} else if err == http.ErrMissingFile {
+		audioForDB = nil
+	} else {
+		if audio_header.Size > int64(4<<20) {
+			response.Res(w, "error", http.StatusBadRequest, "Audio exceeds 4MB limit")
+			return
+		}
+		audioForDB, _ = io.ReadAll(audio)
+		audio.Close()
+	}
+
+	cover_image, cover_image_header, err := r.FormFile("cover_image")
+	var coverImageForDB []byte
+	if err != nil && err != http.ErrMissingFile {
+		log.Printf("cover_image: %v", err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	} else if err == http.ErrMissingFile {
+		coverImageForDB = nil
+	} else {
+		if cover_image_header.Size > int64(1<<20) {
+			response.Res(w, "error", http.StatusBadRequest, "Cover image exceeds 1MB limit")
+			return
+		}
+		coverImageForDB, _ = io.ReadAll(cover_image)
+		cover_image.Close()
+	}
+
+	// Get tags if they exist
+	tags, ok := r.Form["tags"]
+	if !ok {
+		// If tags don't exist, use an empty array
+		tags = []string{}
+	}
+
+	// Convert tags to PostgreSQL array format
+	tagsString := "{" + strings.Join(tags, ",") + "}"
+
+	db, err := db.DB()
+	if err != nil {
+		log.Println(err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer db.Close()
+
+	_, err = db.Exec(`INSERT INTO news_posts (title_latin, description_latin, title_cyrillic, description_cyrillic, photo, video, audio, cover_image, tags) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+		title_latin, description_latin, title_cyrillic, description_cyrillic, photoForDB, videoForDB, audioForDB, coverImageForDB, tagsString)
+	if err != nil {
+		log.Println(err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	response.Res(w, "success", http.StatusCreated, "New post has been created successfully.")
 }
