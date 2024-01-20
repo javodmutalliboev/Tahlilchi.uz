@@ -52,9 +52,11 @@ func addCategory(w http.ResponseWriter, r *http.Request) {
 }
 
 type Subcategory struct {
-	CategoryID  int    `json:"category_id"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
+	CategoryID          int    `json:"category_id"`
+	TitleLatin          string `json:"title_latin"`
+	DescriptionLatin    string `json:"description_latin"`
+	TitleCyrillic       string `json:"title_cyrillic"`
+	DescriptionCyrillic string `json:"description_cyrillic"`
 }
 
 func addSubcategory(w http.ResponseWriter, r *http.Request) {
@@ -66,15 +68,10 @@ func addSubcategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if category_id and title are provided
-	if s.CategoryID == 0 || s.Title == "" {
-		response.Res(w, "error", http.StatusBadRequest, "category_id and title are required")
+	// Check if category_id and titles are provided
+	if s.CategoryID == 0 || s.TitleLatin == "" || s.TitleCyrillic == "" {
+		response.Res(w, "error", http.StatusBadRequest, "category_id and titles are required")
 		return
-	}
-
-	// If description is not provided, set it to an empty string
-	if s.Description == "" {
-		s.Description = ""
 	}
 
 	db, err := db.DB()
@@ -85,7 +82,7 @@ func addSubcategory(w http.ResponseWriter, r *http.Request) {
 	}
 	defer db.Close()
 
-	_, err = db.Exec("INSERT INTO news_subcategory (category_id, title, description) VALUES ($1, $2, $3)", s.CategoryID, s.Title, s.Description)
+	_, err = db.Exec("INSERT INTO news_subcategory (category_id, title_latin, description_latin, title_cyrillic, description_cyrillic) VALUES ($1, $2, $3, $4, $5)", s.CategoryID, s.TitleLatin, s.DescriptionLatin, s.TitleCyrillic, s.DescriptionCyrillic)
 	if err != nil {
 		log.Println(err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
