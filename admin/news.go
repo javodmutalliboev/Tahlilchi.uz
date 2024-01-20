@@ -93,8 +93,10 @@ func addSubcategory(w http.ResponseWriter, r *http.Request) {
 }
 
 type Region struct {
-	Name        string `json:"name"`
-	Description string `json:"description,omitempty"`
+	NameLatin           string `json:"name_latin"`
+	DescriptionLatin    string `json:"description_latin,omitempty"`
+	NameCyrillic        string `json:"name_cyrillic"`
+	DescriptionCyrillic string `json:"description_cyrillic"`
 }
 
 func addRegions(w http.ResponseWriter, r *http.Request) {
@@ -116,12 +118,12 @@ func addRegions(w http.ResponseWriter, r *http.Request) {
 	defer db.Close()
 
 	for _, region := range regions {
-		if region.Name == "" {
-			response.Res(w, "error", http.StatusBadRequest, "Name field is required")
+		if region.NameLatin == "" || region.NameCyrillic == "" {
+			response.Res(w, "error", http.StatusBadRequest, "Name fields are required")
 			return
 		}
 
-		_, err = db.Exec("INSERT INTO news_regions (name, description) VALUES ($1, $2)", region.Name, region.Description)
+		_, err = db.Exec("INSERT INTO news_regions (name_latin, description_latin, name_cyrillic, description_cyrillic) VALUES ($1, $2, $3, $4)", region.NameLatin, region.DescriptionLatin, region.NameCyrillic, region.DescriptionCyrillic)
 		if err != nil {
 			log.Println(err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
