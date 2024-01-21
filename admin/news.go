@@ -456,3 +456,54 @@ func editNewsPost(w http.ResponseWriter, r *http.Request) {
 
 	response.Res(w, "success", http.StatusOK, "OK")
 }
+
+func deleteNewsPost(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	id := params["id"]
+
+	db, err := db.DB()
+	if err != nil {
+		log.Println(err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer db.Close()
+
+	stmt, err := db.Prepare("DELETE FROM news_posts WHERE id=$1")
+	if err != nil {
+		log.Println(err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	_, err = stmt.Exec(id)
+	if err != nil {
+		log.Println(err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	response.Res(w, "success", http.StatusOK, "deleted")
+}
+
+func archiveNewsPost(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	db, err := db.DB()
+	if err != nil {
+		log.Println(err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer db.Close()
+
+	_, err = db.Exec("UPDATE news_posts SET archived = true WHERE id = $1", id)
+	if err != nil {
+		log.Println(err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	response.Res(w, "success", http.StatusOK, "archived")
+}
