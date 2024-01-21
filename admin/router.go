@@ -21,5 +21,8 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	newsRouter.HandleFunc("/regions", middleware.Chain(addRegions, authPackage.AdminAuth())).Methods("POST")
 	newsRouter.HandleFunc("/post", middleware.Chain(addNewsPost, authPackage.AdminAuth())).Methods("POST")
 
+	newsPostRouter := newsRouter.PathPrefix("/post").Subrouter()
+	newsPostRouter.HandleFunc("/edit/{id}", middleware.Chain(editNewsPost, authPackage.AdminAuth())).Methods("PATCH")
+
 	return adminRouter
 }

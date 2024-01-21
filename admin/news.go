@@ -9,6 +9,7 @@ import (
 
 	"Tahlilchi.uz/db"
 	"Tahlilchi.uz/response"
+	"github.com/gorilla/mux"
 )
 
 type Category struct {
@@ -251,4 +252,207 @@ func addNewsPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.Res(w, "success", http.StatusCreated, "New post has been created successfully.")
+}
+
+func editNewsPost(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	// Parse multipart form
+	err := r.ParseMultipartForm(15 << 20)
+	if err != nil {
+		log.Printf("edit news post: %v", err)
+		response.Res(w, "error", http.StatusBadRequest, err.Error())
+		return
+	}
+
+	db, err := db.DB()
+	if err != nil {
+		log.Println(err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer db.Close()
+
+	title_latin := r.FormValue("title_latin")
+	if title_latin != "" {
+		sqlStatement := `
+			UPDATE news_posts
+			SET title_latin = $1
+			WHERE id = $2;
+		`
+		_, err = db.Exec(sqlStatement, title_latin, id)
+		if err != nil {
+			log.Printf("%v: writing title_latin into db: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+	}
+
+	description_latin := r.FormValue("description_latin")
+	if description_latin != "" {
+		sqlStatement := `
+			UPDATE news_posts
+			SET description_latin = $1
+			WHERE id = $2;
+		`
+		_, err = db.Exec(sqlStatement, description_latin, id)
+		if err != nil {
+			log.Printf("%v: writing description_latin into db: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+	}
+
+	title_cyrillic := r.FormValue("title_cyrillic")
+	if title_cyrillic != "" {
+		sqlStatement := `
+			UPDATE news_posts
+			SET title_cyrillic = $1
+			WHERE id = $2;
+		`
+		_, err = db.Exec(sqlStatement, title_cyrillic, id)
+		if err != nil {
+			log.Printf("%v: writing title_cyrillic into db: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+	}
+
+	description_cyrillic := r.FormValue("description_cyrillic")
+	if description_cyrillic != "" {
+		sqlStatement := `
+			UPDATE news_posts
+			SET description_cyrillic = $1
+			WHERE id = $2;
+		`
+		_, err = db.Exec(sqlStatement, description_cyrillic, id)
+		if err != nil {
+			log.Printf("%v: writing description_cyrillic into db: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+	}
+
+	photo, photo_header, err := r.FormFile("photo")
+	if err != nil && err != http.ErrMissingFile {
+		log.Printf("photo: %v", err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	} else if err == http.ErrMissingFile {
+	} else {
+		// Check size limits
+		if photo_header.Size > int64(2<<20) {
+			response.Res(w, "error", http.StatusBadRequest, "Photo exceeds 2MB limit")
+			return
+		}
+		photoForDB, _ := io.ReadAll(photo)
+		photo.Close()
+		sqlStatement := `
+			UPDATE news_posts
+			SET photo = $1
+			WHERE id = $2;
+		`
+		_, err = db.Exec(sqlStatement, photoForDB, id)
+		if err != nil {
+			log.Printf("%v: writing photo into db: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+	}
+
+	video, video_header, err := r.FormFile("video")
+	if err != nil && err != http.ErrMissingFile {
+		log.Printf("video: %v", err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	} else if err == http.ErrMissingFile {
+	} else {
+		if video_header.Size > int64(6<<20) {
+			response.Res(w, "error", http.StatusBadRequest, "Video exceeds 6MB limit")
+			return
+		}
+		videoForDB, _ := io.ReadAll(video)
+		video.Close()
+		sqlStatement := `
+			UPDATE news_posts
+			SET video = $1
+			WHERE id = $2;
+		`
+		_, err = db.Exec(sqlStatement, videoForDB, id)
+		if err != nil {
+			log.Printf("%v: writing video into db: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+	}
+
+	audio, audio_header, err := r.FormFile("audio")
+	if err != nil && err != http.ErrMissingFile {
+		log.Printf("audio: %v", err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	} else if err == http.ErrMissingFile {
+	} else {
+		if audio_header.Size > int64(4<<20) {
+			response.Res(w, "error", http.StatusBadRequest, "Audio exceeds 4MB limit")
+			return
+		}
+		audioForDB, _ := io.ReadAll(audio)
+		audio.Close()
+		sqlStatement := `
+			UPDATE news_posts
+			SET audio = $1
+			WHERE id = $2;
+		`
+		_, err = db.Exec(sqlStatement, audioForDB, id)
+		if err != nil {
+			log.Printf("%v: writing audio into db: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+	}
+
+	cover_image, cover_image_header, err := r.FormFile("cover_image")
+	if err != nil && err != http.ErrMissingFile {
+		log.Printf("cover_image: %v", err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	} else if err == http.ErrMissingFile {
+	} else {
+		if cover_image_header.Size > int64(1<<20) {
+			response.Res(w, "error", http.StatusBadRequest, "Cover image exceeds 1MB limit")
+			return
+		}
+		coverImageForDB, _ := io.ReadAll(cover_image)
+		cover_image.Close()
+		sqlStatement := `
+			UPDATE news_posts
+			SET cover_image = $1
+			WHERE id = $2;
+		`
+		_, err = db.Exec(sqlStatement, coverImageForDB, id)
+		if err != nil {
+			log.Printf("%v: writing cover_image into db: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+	}
+
+	if tags, ok := r.Form["tags"]; ok {
+		tagsString := "{" + strings.Join(tags, ",") + "}"
+		sqlStatement := `
+			UPDATE news_posts
+			SET tags = $1
+			WHERE id = $2;
+		`
+		_, err = db.Exec(sqlStatement, tagsString, id)
+		if err != nil {
+			log.Printf("%v: writing tags into db: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+	}
+
+	response.Res(w, "success", http.StatusOK, "OK")
 }
