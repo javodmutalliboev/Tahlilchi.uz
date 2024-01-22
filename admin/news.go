@@ -254,12 +254,80 @@ func addNewsPost(w http.ResponseWriter, r *http.Request) {
 	response.Res(w, "success", http.StatusCreated, "New post has been created successfully.")
 }
 
+func exists(id string) (*bool, error) {
+	// Open a connection to the database
+	db, err := db.DB()
+	if err != nil {
+		return nil, err
+	}
+	defer db.Close()
+
+	var exists bool
+	err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM news_posts WHERE id=$1)", id).Scan(&exists)
+	if err != nil {
+		return nil, err
+	}
+
+	return &exists, nil
+}
+
+func isArchived(id string) (*bool, error) {
+	// Open a connection to the database
+	db, err := db.DB()
+	if err != nil {
+		return nil, err
+	}
+	defer db.Close()
+
+	// Prepare the SQL statement
+	stmt, err := db.Prepare("SELECT archived FROM news_posts WHERE id = $1")
+	if err != nil {
+		return nil, err
+	}
+	defer stmt.Close()
+
+	// Execute the SQL statement
+	var archived bool
+	err = stmt.QueryRow(id).Scan(&archived)
+	if err != nil {
+		return nil, err
+	}
+
+	return &archived, nil
+}
+
 func editNewsPost(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 
+	exists, err := exists(id)
+	if err != nil {
+		log.Printf("%v: edit news post exists(id): %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if !*exists {
+		log.Printf("%v: edit news post exists(id): %v", r.URL, *exists)
+		response.Res(w, "error", http.StatusBadRequest, "Cannot edit non existent news post")
+		return
+	}
+
+	archived, err := isArchived(id)
+	if err != nil {
+		log.Printf("%v: edit news post isArchived(id): %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if *archived {
+		log.Printf("%v: edit news post isArchived(id): %v", r.URL, *archived)
+		response.Res(w, "error", http.StatusBadRequest, "Cannot edit archived news post")
+		return
+	}
+
 	// Parse multipart form
-	err := r.ParseMultipartForm(15 << 20)
+	err = r.ParseMultipartForm(15 << 20)
 	if err != nil {
 		log.Printf("edit news post: %v", err)
 		response.Res(w, "error", http.StatusBadRequest, err.Error())
