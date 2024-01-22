@@ -529,6 +529,19 @@ func deleteNewsPost(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id := params["id"]
 
+	archived, err := isArchived(id)
+	if err != nil {
+		log.Printf("%v: delete news post isArchived(id): %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if !*archived {
+		log.Printf("%v: delete news post isArchived(id): %v", r.URL, *archived)
+		response.Res(w, "error", http.StatusBadRequest, "Cannot delete not archived news post")
+		return
+	}
+
 	db, err := db.DB()
 	if err != nil {
 		log.Println(err)
@@ -557,6 +570,19 @@ func deleteNewsPost(w http.ResponseWriter, r *http.Request) {
 func archiveNewsPost(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
+
+	exists, err := exists(id)
+	if err != nil {
+		log.Printf("%v: archive news post exists(id): %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if !*exists {
+		log.Printf("%v: archive news post exists(id): %v", r.URL, *exists)
+		response.Res(w, "error", http.StatusBadRequest, "Cannot archive non existent news post")
+		return
+	}
 
 	db, err := db.DB()
 	if err != nil {
