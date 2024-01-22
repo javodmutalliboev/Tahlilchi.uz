@@ -28,6 +28,7 @@ func AdminRouter(r *mux.Router) *mux.Router {
 
 	articleRouter := adminRouter.PathPrefix("/article").Subrouter()
 	articleRouter.HandleFunc("/category", middleware.Chain(addArticleCategory, authPackage.AdminAuth())).Methods("POST")
+	articleRouter.HandleFunc("", middleware.Chain(addArticle, authPackage.AdminAuth())).Methods("POST")
 
 	return adminRouter
 }
