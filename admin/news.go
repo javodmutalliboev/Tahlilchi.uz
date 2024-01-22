@@ -454,7 +454,7 @@ func editNewsPost(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	response.Res(w, "success", http.StatusOK, "OK")
+	response.Res(w, "success", http.StatusOK, "News post edited")
 }
 
 func deleteNewsPost(w http.ResponseWriter, r *http.Request) {
