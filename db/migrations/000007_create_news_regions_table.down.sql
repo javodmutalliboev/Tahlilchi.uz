@@ -1,1 +1,1 @@
-DROP TABLE IF EXISTS news_subcategory;
+DROP TABLE IF EXISTS news_regions;
