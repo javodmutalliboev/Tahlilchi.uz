@@ -185,7 +185,7 @@ func editArticle(w http.ResponseWriter, r *http.Request) {
 	if title_latin != "" {
 		sqlStatement := `
 			UPDATE articles
-			SET title_latin = $1
+			SET title_latin = $1, edited_at = NOW()
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, title_latin, id)
@@ -200,7 +200,7 @@ func editArticle(w http.ResponseWriter, r *http.Request) {
 	if description_latin != "" {
 		sqlStatement := `
 			UPDATE articles
-			SET description_latin = $1
+			SET description_latin = $1, edited_at = NOW()
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, description_latin, id)
@@ -215,7 +215,7 @@ func editArticle(w http.ResponseWriter, r *http.Request) {
 	if title_cyrillic != "" {
 		sqlStatement := `
 			UPDATE articles
-			SET title_cyrillic = $1
+			SET title_cyrillic = $1, edited_at = NOW()
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, title_cyrillic, id)
@@ -230,7 +230,7 @@ func editArticle(w http.ResponseWriter, r *http.Request) {
 	if description_cyrillic != "" {
 		sqlStatement := `
 			UPDATE articles
-			SET description_cyrillic = $1
+			SET description_cyrillic = $1, edited_at = NOW()
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, description_cyrillic, id)
@@ -263,7 +263,7 @@ func editArticle(w http.ResponseWriter, r *http.Request) {
 	if photosForDb.Len() > 0 {
 		sqlStatement := `
 			UPDATE articles
-			SET photos = $1
+			SET photos = $1, edited_at = NOW()
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, pq.Array([][]byte{photosForDb.Bytes()}), id)
@@ -296,7 +296,7 @@ func editArticle(w http.ResponseWriter, r *http.Request) {
 	if videosForDB.Len() > 0 {
 		sqlStatement := `
 			UPDATE articles
-			SET videos = $1
+			SET videos = $1, edited_at = NOW()
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, pq.Array([][]byte{videosForDB.Bytes()}), id)
@@ -330,7 +330,7 @@ func editArticle(w http.ResponseWriter, r *http.Request) {
 		coverImage.Close()
 		sqlStatement := `
 			UPDATE articles
-			SET cover_image = $1
+			SET cover_image = $1, edited_at = NOW()
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, coverImageForDB, id)
@@ -345,7 +345,7 @@ func editArticle(w http.ResponseWriter, r *http.Request) {
 		tagsString := "{" + strings.Join(tags, ",") + "}"
 		sqlStatement := `
 			UPDATE articles
-			SET tags = $1
+			SET tags = $1, edited_at = NOW()
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, tagsString, id)

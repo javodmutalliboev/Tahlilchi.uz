@@ -268,7 +268,7 @@ func editNewsPost(w http.ResponseWriter, r *http.Request) {
 
 	db, err := db.DB()
 	if err != nil {
-		log.Println(err)
+		log.Printf("%v: error while connecting to db: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
@@ -278,7 +278,7 @@ func editNewsPost(w http.ResponseWriter, r *http.Request) {
 	if title_latin != "" {
 		sqlStatement := `
 			UPDATE news_posts
-			SET title_latin = $1
+			SET title_latin = $1, edited_at = NOW() 
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, title_latin, id)
@@ -293,7 +293,7 @@ func editNewsPost(w http.ResponseWriter, r *http.Request) {
 	if description_latin != "" {
 		sqlStatement := `
 			UPDATE news_posts
-			SET description_latin = $1
+			SET description_latin = $1, edited_at = NOW()
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, description_latin, id)
@@ -308,7 +308,7 @@ func editNewsPost(w http.ResponseWriter, r *http.Request) {
 	if title_cyrillic != "" {
 		sqlStatement := `
 			UPDATE news_posts
-			SET title_cyrillic = $1
+			SET title_cyrillic = $1, edited_at = NOW()
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, title_cyrillic, id)
@@ -323,7 +323,7 @@ func editNewsPost(w http.ResponseWriter, r *http.Request) {
 	if description_cyrillic != "" {
 		sqlStatement := `
 			UPDATE news_posts
-			SET description_cyrillic = $1
+			SET description_cyrillic = $1, edited_at = NOW()
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, description_cyrillic, id)
@@ -350,7 +350,7 @@ func editNewsPost(w http.ResponseWriter, r *http.Request) {
 		photo.Close()
 		sqlStatement := `
 			UPDATE news_posts
-			SET photo = $1
+			SET photo = $1, edited_at = NOW()
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, photoForDB, id)
@@ -376,7 +376,7 @@ func editNewsPost(w http.ResponseWriter, r *http.Request) {
 		video.Close()
 		sqlStatement := `
 			UPDATE news_posts
-			SET video = $1
+			SET video = $1, edited_at = NOW()
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, videoForDB, id)
@@ -402,7 +402,7 @@ func editNewsPost(w http.ResponseWriter, r *http.Request) {
 		audio.Close()
 		sqlStatement := `
 			UPDATE news_posts
-			SET audio = $1
+			SET audio = $1, edited_at = NOW()
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, audioForDB, id)
@@ -428,7 +428,7 @@ func editNewsPost(w http.ResponseWriter, r *http.Request) {
 		cover_image.Close()
 		sqlStatement := `
 			UPDATE news_posts
-			SET cover_image = $1
+			SET cover_image = $1, edited_at = NOW()
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, coverImageForDB, id)
@@ -443,7 +443,7 @@ func editNewsPost(w http.ResponseWriter, r *http.Request) {
 		tagsString := "{" + strings.Join(tags, ",") + "}"
 		sqlStatement := `
 			UPDATE news_posts
-			SET tags = $1
+			SET tags = $1, edited_at = NOW()
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, tagsString, id)
