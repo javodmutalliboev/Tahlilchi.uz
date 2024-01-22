@@ -557,7 +557,7 @@ func deleteNewsPost(w http.ResponseWriter, r *http.Request) {
 
 	db, err := db.DB()
 	if err != nil {
-		log.Println(err)
+		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
@@ -565,14 +565,14 @@ func deleteNewsPost(w http.ResponseWriter, r *http.Request) {
 
 	stmt, err := db.Prepare("DELETE FROM news_posts WHERE id=$1")
 	if err != nil {
-		log.Println(err)
+		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
 
 	_, err = stmt.Exec(id)
 	if err != nil {
-		log.Println(err)
+		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
@@ -612,7 +612,7 @@ func archiveNewsPost(w http.ResponseWriter, r *http.Request) {
 
 	db, err := db.DB()
 	if err != nil {
-		log.Println(err)
+		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
@@ -620,7 +620,7 @@ func archiveNewsPost(w http.ResponseWriter, r *http.Request) {
 
 	_, err = db.Exec("UPDATE news_posts SET archived = true WHERE id = $1", id)
 	if err != nil {
-		log.Println(err)
+		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}

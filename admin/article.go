@@ -426,3 +426,106 @@ func editArticle(w http.ResponseWriter, r *http.Request) {
 
 	response.Res(w, "success", http.StatusOK, "Article edited")
 }
+
+func deleteArticle(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	id := params["id"]
+
+	exists, err := articleExists(id)
+	if err != nil {
+		log.Printf("%v: delete article articleExists(id): %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if !*exists {
+		log.Printf("%v: delete article articleExists(id): %v", r.URL, *exists)
+		response.Res(w, "error", http.StatusBadRequest, "Cannot delete non existent article")
+		return
+	}
+
+	archived, err := articleIsArchived(id)
+	if err != nil {
+		log.Printf("%v: delete article articleIsArchived(id): %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if !*archived {
+		log.Printf("%v: delete article articleIsArchived(id): %v", r.URL, *archived)
+		response.Res(w, "error", http.StatusBadRequest, "Cannot delete not archived article")
+		return
+	}
+
+	db, err := db.DB()
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer db.Close()
+
+	stmt, err := db.Prepare("DELETE FROM articles WHERE id=$1")
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	_, err = stmt.Exec(id)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	response.Res(w, "success", http.StatusOK, "deleted")
+}
+
+func archiveArticle(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	exists, err := articleExists(id)
+	if err != nil {
+		log.Printf("%v: archive article articleExists(id): %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if !*exists {
+		log.Printf("%v: archive article articleExists(id): %v", r.URL, *exists)
+		response.Res(w, "error", http.StatusBadRequest, "Cannot archive non existent article")
+		return
+	}
+
+	archived, err := articleIsArchived(id)
+	if err != nil {
+		log.Printf("%v: archive article articleIsArchived(id): %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if *archived {
+		log.Printf("%v: archive article articleIsArchived(id): %v", r.URL, *archived)
+		response.Res(w, "error", http.StatusBadRequest, "Cannot archive already archived article")
+		return
+	}
+
+	db, err := db.DB()
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer db.Close()
+
+	_, err = db.Exec("UPDATE articles SET archived = true WHERE id = $1", id)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	response.Res(w, "success", http.StatusOK, "archived")
+}
