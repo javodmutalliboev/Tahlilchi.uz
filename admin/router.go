@@ -38,6 +38,8 @@ func AdminRouter(r *mux.Router) *mux.Router {
 
 	businessPromotionalPostRouter := businessPromotionalRouter.PathPrefix("/post").Subrouter()
 	businessPromotionalPostRouter.HandleFunc("/edit/{id}", middleware.Chain(editBusinessPromotionalPost, authPackage.AdminAuth())).Methods("PATCH")
+	businessPromotionalPostRouter.HandleFunc("/delete/{id}", middleware.Chain(deleteBPPost, authPackage.AdminAuth())).Methods("DELETE")
+	businessPromotionalPostRouter.HandleFunc("/archive/{id}", middleware.Chain(archiveBPPost, authPackage.AdminAuth())).Methods("PATCH")
 
 	return adminRouter
 }
