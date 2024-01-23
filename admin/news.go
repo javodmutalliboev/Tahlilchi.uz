@@ -329,7 +329,7 @@ func editNewsPost(w http.ResponseWriter, r *http.Request) {
 	// Parse multipart form
 	err = r.ParseMultipartForm(15 << 20)
 	if err != nil {
-		log.Printf("edit news post: %v", err)
+		log.Printf("%v: edit news post: %v", r.URL, err)
 		response.Res(w, "error", http.StatusBadRequest, err.Error())
 		return
 	}

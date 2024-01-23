@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"Tahlilchi.uz/developer"
+	"github.com/go-co-op/gocron"
 	"github.com/joho/godotenv"
 )
 
@@ -29,6 +30,16 @@ func main() {
 			}()
 		}
 
+		s := gocron.NewScheduler(time.UTC)
+		// Schedule a task to run every 5 seconds
+		_, err := s.Every(5).Seconds().Do(task)
+		if err != nil {
+			fmt.Println("Error scheduling task:", err)
+			return
+		}
+		// Start the scheduler
+		s.StartAsync()
+
 		Router()
 	}()
 
@@ -37,4 +48,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func task() {
+	fmt.Println("Task is being performed.")
 }
