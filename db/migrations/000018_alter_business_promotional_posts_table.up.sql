@@ -1,0 +1,4 @@
+ALTER TABLE business_promotional_posts
+DROP CONSTRAINT business_promotional_posts_title_latin_key,
+DROP CONSTRAINT business_promotional_posts_title_cyrillic_key,
+ADD archived BOOLEAN NOT NULL DEFAULT false;
