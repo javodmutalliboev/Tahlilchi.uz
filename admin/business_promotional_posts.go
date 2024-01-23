@@ -545,3 +545,40 @@ func archiveBPPost(w http.ResponseWriter, r *http.Request) {
 
 	response.Res(w, "success", http.StatusOK, "archived")
 }
+
+func CheckAndArchiveExpiredBPPosts() {
+	db, err := db.DB()
+	if err != nil {
+		log.Printf("checkAndArchiveExpiredBPPosts(): error: %v", err)
+		return
+	}
+	defer db.Close()
+
+	// Start a new transaction
+	tx, err := db.Begin()
+	if err != nil {
+		log.Printf("checkAndArchiveExpiredBPPosts(): Start a new transaction: error: %v", err)
+		return
+	}
+
+	// Prepare the SQL statement
+	stmt, err := tx.Prepare("UPDATE business_promotional_posts SET archived = true WHERE expiration < $1")
+	if err != nil {
+		log.Printf("checkAndArchiveExpiredBPPosts(): Prepare the SQL statement: error: %v", err)
+		return
+	}
+
+	// Execute the SQL statement
+	_, err = stmt.Exec(time.Now().UTC())
+	if err != nil {
+		log.Printf("checkAndArchiveExpiredBPPosts(): Execute the SQL statement: error: %v", err)
+		return
+	}
+
+	// Commit the transaction
+	err = tx.Commit()
+	if err != nil {
+		log.Printf("checkAndArchiveExpiredBPPosts(): Commit the transaction: error: %v", err)
+		return
+	}
+}

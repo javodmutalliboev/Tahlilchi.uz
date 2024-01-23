@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	"Tahlilchi.uz/admin"
 	"Tahlilchi.uz/developer"
 	"github.com/go-co-op/gocron"
 	"github.com/joho/godotenv"
@@ -30,14 +31,13 @@ func main() {
 			}()
 		}
 
+		// Initialize a new scheduler
 		s := gocron.NewScheduler(time.UTC)
-		// Schedule a task to run every 5 seconds
-		_, err := s.Every(5).Seconds().Do(task)
-		if err != nil {
-			fmt.Println("Error scheduling task:", err)
-			return
-		}
-		// Start the scheduler
+
+		// Schedule the function to run every hour
+		s.Every(1).Hour().Do(admin.CheckAndArchiveExpiredBPPosts)
+
+		// Start the scheduler without blocking
 		s.StartAsync()
 
 		Router()
@@ -48,8 +48,4 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-}
-
-func task() {
-	fmt.Println("Task is being performed.")
 }
