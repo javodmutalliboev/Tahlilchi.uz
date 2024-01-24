@@ -41,5 +41,8 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	businessPromotionalPostRouter.HandleFunc("/delete/{id}", middleware.Chain(deleteBPPost, authPackage.AdminAuth())).Methods("DELETE")
 	businessPromotionalPostRouter.HandleFunc("/archive/{id}", middleware.Chain(archiveBPPost, authPackage.AdminAuth())).Methods("PATCH")
 
+	eNewspaperRouter := adminRouter.PathPrefix("/e-newspaper").Subrouter()
+	eNewspaperRouter.HandleFunc("/add", middleware.Chain(addENewspaper, authPackage.AdminAuth())).Methods("POST")
+
 	return adminRouter
 }
