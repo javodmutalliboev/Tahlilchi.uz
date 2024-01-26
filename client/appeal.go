@@ -1,9 +1,11 @@
 package client
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -12,6 +14,7 @@ import (
 	"Tahlilchi.uz/response"
 	"Tahlilchi.uz/telegramBot"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/jackc/pgx/v4"
 )
 
 func Appeal(w http.ResponseWriter, r *http.Request) {
@@ -46,13 +49,39 @@ func Appeal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	db, err := db.DB()
+	if err != nil {
+		fmt.Println(err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer db.Close()
+
+	sqlStatement := `INSERT INTO appeals (name, surname, phone_number, message) VALUES ($1, $2, $3, $4) RETURNING id`
+	var id int64
+	err = db.QueryRow(sqlStatement, name, surname, phoneNumber, message).Scan(&id)
+	if err != nil {
+		fmt.Println(err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	connString := fmt.Sprintf("postgresql://%v:%v@%v:%v/%v?sslmode=disable", os.Getenv("DBUSER"), os.Getenv("DBPASSWORD"), os.Getenv("DBHOST"), os.Getenv("DBPORT"), os.Getenv("DBNAME"))
+	conn, err := pgx.Connect(context.Background(), connString)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer conn.Close(context.Background())
+
 	// For optional fields, check if they are empty
 	pictureFile, pictureHeader, err := r.FormFile("picture")
-	var picture []byte
+	var pictureOID uint32
 	if err == http.ErrMissingFile {
-		picture = []byte{}
+
 	} else if err != nil {
-		fmt.Println(err)
+		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	} else {
@@ -67,18 +96,58 @@ func Appeal(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		picture, err = io.ReadAll(pictureFile)
+		tx, err := conn.Begin(context.Background())
 		if err != nil {
-			fmt.Println(err)
+			log.Printf("%v: error: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
 			return
 		}
+		defer tx.Rollback(context.Background())
+
+		lob := tx.LargeObjects()
+		pictureOID, err = lob.Create(context.Background(), 0)
+		if err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+
+		obj, err := lob.Open(context.Background(), pictureOID, pgx.LargeObjectModeWrite)
+		if err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+		defer obj.Close()
+
+		_, err = io.Copy(obj, pictureFile)
+		if err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+
+		_, err = tx.Exec(context.Background(), "UPDATE appeals SET picture = $1 WHERE id = $2", pictureOID, id)
+		if err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+
+		err = tx.Commit(context.Background())
+		if err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+
+		pictureFile.Close()
 	}
 
 	videoFile, videoHeader, err := r.FormFile("video")
-	var video []byte
+	var videoOID uint32
 	if err == http.ErrMissingFile {
-		video = []byte{}
+
 	} else if err != nil {
 		fmt.Println(err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -95,29 +164,52 @@ func Appeal(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		video, err = io.ReadAll(videoFile)
+		tx, err := conn.Begin(context.Background())
 		if err != nil {
-			fmt.Println(err)
+			log.Printf("%v: error: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
 			return
 		}
-	}
+		defer tx.Rollback(context.Background())
 
-	db, err := db.DB()
-	if err != nil {
-		fmt.Println(err)
-		response.Res(w, "error", http.StatusInternalServerError, "server error")
-		return
-	}
-	defer db.Close()
+		lob := tx.LargeObjects()
+		videoOID, err = lob.Create(context.Background(), 0)
+		if err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
 
-	sqlStatement := `INSERT INTO appeals (name, surname, phone_number, message, picture, video) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`
-	var id int64
-	err = db.QueryRow(sqlStatement, name, surname, phoneNumber, message, picture, video).Scan(&id)
-	if err != nil {
-		fmt.Println(err)
-		response.Res(w, "error", http.StatusInternalServerError, "server error")
-		return
+		obj, err := lob.Open(context.Background(), videoOID, pgx.LargeObjectModeWrite)
+		if err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+		defer obj.Close()
+
+		_, err = io.Copy(obj, videoFile)
+		if err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+
+		_, err = tx.Exec(context.Background(), "UPDATE appeals SET video = $1 WHERE id = $2", videoOID, id)
+		if err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+
+		err = tx.Commit(context.Background())
+		if err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+
+		videoFile.Close()
 	}
 
 	response.Res(w, "success", http.StatusCreated, "The appeal form has been submitted successfully.")
@@ -125,26 +217,24 @@ func Appeal(w http.ResponseWriter, r *http.Request) {
 	err = sendToTBot(db, id)
 
 	if err != nil {
-		fmt.Println(err)
+		log.Printf("%v: error: %v", r.URL, err)
 	}
 }
 
 func sendToTBot(db *sql.DB, id int64) error {
 	// Query the database
-	row := db.QueryRow("SELECT name, surname, phone_number, message FROM appeals WHERE id = $1", id)
-	rowPV := db.QueryRow("SELECT picture, video FROM appeals WHERE id = $1", id)
+	row := db.QueryRow("SELECT name, surname, phone_number, message, picture, video FROM appeals WHERE id = $1", id)
+
+	connString := fmt.Sprintf("postgresql://%v:%v@%v:%v/%v?sslmode=disable", os.Getenv("DBUSER"), os.Getenv("DBPASSWORD"), os.Getenv("DBHOST"), os.Getenv("DBPORT"), os.Getenv("DBNAME"))
+	conn, err := pgx.Connect(context.Background(), connString)
+	if err != nil {
+		return err
+	}
+	defer conn.Close(context.Background())
 
 	var name, surname, phoneNumber, message string
-	var picture, video []byte
-	err := row.Scan(&name, &surname, &phoneNumber, &message)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			// Handle no rows returned
-		} else {
-			return err
-		}
-	}
-	err = rowPV.Scan(&picture, &video)
+	var picture, video sql.NullInt64
+	err = row.Scan(&name, &surname, &phoneNumber, &message, &picture, &video)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// Handle no rows returned
@@ -169,8 +259,28 @@ func sendToTBot(db *sql.DB, id int64) error {
 	}
 
 	// Send the picture to the Telegram Bot, if it exists
-	if picture != nil {
-		pic := tgbotapi.NewPhotoUpload(chatID, tgbotapi.FileBytes{Name: "picture.jpg", Bytes: picture})
+	if picture.Valid {
+		tx, err := conn.Begin(context.Background())
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer tx.Rollback(context.Background())
+
+		lob := tx.LargeObjects()
+		obj, err := lob.Open(context.Background(), uint32(picture.Int64), pgx.LargeObjectModeRead)
+		if err != nil {
+			return err
+		}
+		defer obj.Close()
+
+		picBytes, err := io.ReadAll(obj)
+		if err != nil {
+			return err
+		}
+
+		// Send the picture
+		pic := tgbotapi.NewPhotoUpload(chatID, tgbotapi.FileBytes{Name: "picture.jpg", Bytes: picBytes})
+		pic.Caption = fmt.Sprintf("Murojaatchining ismi | Мурожаатчининг исми: %s\nFamiliyasi | Фамилияси: %s\nTelefon raqami | Телефон рақами: %s", name, surname, phoneNumber)
 		_, err = bot.Send(pic)
 		if err != nil {
 			return err
@@ -178,8 +288,28 @@ func sendToTBot(db *sql.DB, id int64) error {
 	}
 
 	// Send the video to the Telegram Bot, if it exists
-	if video != nil {
-		vid := tgbotapi.NewVideoUpload(chatID, tgbotapi.FileBytes{Name: "video.mp4", Bytes: video})
+	if video.Valid {
+		tx, err := conn.Begin(context.Background())
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer tx.Rollback(context.Background())
+
+		lob := tx.LargeObjects()
+		obj, err := lob.Open(context.Background(), uint32(video.Int64), pgx.LargeObjectModeRead)
+		if err != nil {
+			return err
+		}
+		defer obj.Close()
+
+		vidBytes, err := io.ReadAll(obj)
+		if err != nil {
+			return err
+		}
+
+		// Send the video
+		vid := tgbotapi.NewVideoUpload(chatID, tgbotapi.FileBytes{Name: "video.mp4", Bytes: vidBytes})
+		vid.Caption = fmt.Sprintf("Murojaatchining ismi | Мурожаатчининг исми: %s\nFamiliyasi | Фамилияси: %s\nTelefon raqami | Телефон рақами: %s", name, surname, phoneNumber)
 		_, err = bot.Send(vid)
 		if err != nil {
 			return err
