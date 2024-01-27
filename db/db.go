@@ -17,3 +17,8 @@ func DB() (*sql.DB, error) {
 	}
 	return db, nil
 }
+
+func ConnString() string {
+	connString := fmt.Sprintf("postgresql://%v:%v@%v:%v/%v?sslmode=disable", os.Getenv("DBUSER"), os.Getenv("DBPASSWORD"), os.Getenv("DBHOST"), os.Getenv("DBPORT"), os.Getenv("DBNAME"))
+	return connString
+}
