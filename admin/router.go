@@ -60,5 +60,9 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	contactAppealRouter.HandleFunc("/{id}/picture", middleware.Chain(appealPicture, authPackage.AdminAuth())).Methods("GET")
 	contactAppealRouter.HandleFunc("/{id}/video", middleware.Chain(appealVideo, authPackage.AdminAuth())).Methods("GET")
 
+	contactRouter.HandleFunc("", middleware.Chain(createAdminContact, authPackage.AdminAuth())).Methods("POST")
+	contactRouter.HandleFunc("", middleware.Chain(getAdminContact, authPackage.AdminAuth())).Methods("GET")
+	contactRouter.HandleFunc("/{id}", middleware.Chain(updateAdminContact, authPackage.AdminAuth())).Methods("PATCH")
+
 	return adminRouter
 }
