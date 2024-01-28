@@ -1,6 +1,7 @@
 package admin
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -393,4 +394,38 @@ func archiveENewspaper(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.Res(w, "success", http.StatusOK, "archived")
+}
+
+type ENewspaperCount struct {
+	Period string `json:"period"`
+	Count  int    `json:"count"`
+}
+
+func getENewspaperCount(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	period := vars["period"]
+
+	if period != "week" && period != "month" && period != "year" {
+		response.Res(w, "error", http.StatusBadRequest, "invalid period value")
+		return
+	}
+
+	database, err := db.DB()
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	var count int
+	query := fmt.Sprintf("SELECT COUNT(*) FROM e_newspapers WHERE created_at > current_date - interval '1 %s'", period)
+	err = database.QueryRow(query).Scan(&count)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	response.Res(w, "success", http.StatusOK, ENewspaperCount{Period: period, Count: count})
 }
