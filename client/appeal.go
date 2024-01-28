@@ -251,7 +251,7 @@ func sendToTBot(db *sql.DB, id int64) error {
 
 	// Send a message to the Telegram bot
 	chatID, _ := strconv.ParseInt(os.Getenv("TELEGRAM_CHAT_ID"), 10, 64)
-	msg := tgbotapi.NewMessage(chatID, fmt.Sprintf("Янги мурожаат келди\nМурожаатчининг исми: %s\nФамилияси: %s\nТелефон рақами: %s\nХабар: %s", name, surname, phoneNumber, message))
+	msg := tgbotapi.NewMessage(chatID, fmt.Sprintf("Янги мурожаат келди:\nМурожаатчининг исми: %s\nФамилияси: %s\nТелефон рақами: %s\nХабар: %s", name, surname, phoneNumber, message))
 
 	_, err = bot.Send(msg)
 	if err != nil {
