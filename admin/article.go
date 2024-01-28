@@ -2,6 +2,7 @@ package admin
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -528,4 +529,38 @@ func archiveArticle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.Res(w, "success", http.StatusOK, "archived")
+}
+
+type ArticleCount struct {
+	Period string `json:"period"`
+	Count  int    `json:"count"`
+}
+
+func getArticleCount(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	period := vars["period"]
+
+	if period != "week" && period != "month" && period != "year" {
+		response.Res(w, "error", http.StatusBadRequest, "invalid period value")
+		return
+	}
+
+	database, err := db.DB()
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	var count int
+	query := fmt.Sprintf("SELECT COUNT(*) FROM articles WHERE created_at > current_date - interval '1 %s'", period)
+	err = database.QueryRow(query).Scan(&count)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	response.Res(w, "success", http.StatusOK, ArticleCount{Period: period, Count: count})
 }
