@@ -1,11 +1,13 @@
 package admin
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"Tahlilchi.uz/db"
@@ -175,22 +177,24 @@ func addNewsPost(w http.ResponseWriter, r *http.Request) {
 		photo.Close()
 	}
 
-	video, video_header, err := r.FormFile("video")
-	var videoForDB []byte
-	if err != nil && err != http.ErrMissingFile {
-		log.Printf("video: %v", err)
-		response.Res(w, "error", http.StatusInternalServerError, "server error")
-		return
-	} else if err == http.ErrMissingFile {
-		videoForDB = nil
-	} else {
-		if video_header.Size > int64(6<<20) {
-			response.Res(w, "error", http.StatusBadRequest, "Video exceeds 6MB limit")
+	video := r.FormValue("video")
+	/*
+		var videoForDB []byte
+		if err != nil && err != http.ErrMissingFile {
+			log.Printf("video: %v", err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
 			return
-		}
-		videoForDB, _ = io.ReadAll(video)
-		video.Close()
-	}
+			} else if err == http.ErrMissingFile {
+				videoForDB = nil
+				} else {
+					if video_header.Size > int64(6<<20) {
+						response.Res(w, "error", http.StatusBadRequest, "Video exceeds 6MB limit")
+						return
+					}
+					videoForDB, _ = io.ReadAll(video)
+					video.Close()
+				}
+	*/
 
 	audio, audio_header, err := r.FormFile("audio")
 	var audioForDB []byte
@@ -236,6 +240,72 @@ func addNewsPost(w http.ResponseWriter, r *http.Request) {
 	// Convert tags to PostgreSQL array format
 	tagsString := "{" + strings.Join(tags, ",") + "}"
 
+	var categoryInt sql.NullInt64
+	if category := r.FormValue("category"); category != "" {
+		categoryInt.Int64, err = strconv.ParseInt(category, 10, 64)
+		if err != nil {
+			log.Println(err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+		categoryInt.Valid = true
+	}
+
+	var subcategoryInt sql.NullInt64
+	if subcategory := r.FormValue("subcategory"); subcategory != "" {
+		subcategoryInt.Int64, err = strconv.ParseInt(subcategory, 10, 64)
+		if err != nil {
+			log.Println(err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+		subcategoryInt.Valid = true
+	}
+
+	var regionInt sql.NullInt64
+	if region := r.FormValue("region"); region != "" {
+		regionInt.Int64, err = strconv.ParseInt(region, 10, 64)
+		if err != nil {
+			log.Println(err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+		regionInt.Valid = true
+	}
+
+	var topBool sql.NullBool
+	if top := r.FormValue("top"); top != "" {
+		topBool.Bool, err = strconv.ParseBool(top)
+		if err != nil {
+			log.Println(err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+		topBool.Valid = true
+	}
+
+	var latestBool sql.NullBool
+	if latest := r.FormValue("latest"); latest != "" {
+		latestBool.Bool, err = strconv.ParseBool(latest)
+		if err != nil {
+			log.Println(err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+		latestBool.Valid = true
+	}
+
+	var relatedInt sql.NullInt64
+	if related := r.FormValue("related"); related != "" {
+		relatedInt.Int64, err = strconv.ParseInt(related, 10, 64)
+		if err != nil {
+			log.Println(err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+		relatedInt.Valid = true
+	}
+
 	db, err := db.DB()
 	if err != nil {
 		log.Println(err)
@@ -244,10 +314,10 @@ func addNewsPost(w http.ResponseWriter, r *http.Request) {
 	}
 	defer db.Close()
 
-	_, err = db.Exec(`INSERT INTO news_posts (title_latin, description_latin, title_cyrillic, description_cyrillic, photo, video, audio, cover_image, tags) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-		title_latin, description_latin, title_cyrillic, description_cyrillic, photoForDB, videoForDB, audioForDB, coverImageForDB, tagsString)
+	_, err = db.Exec(`INSERT INTO news_posts (title_latin, description_latin, title_cyrillic, description_cyrillic, photo, video, audio, cover_image, tags, category, subcategory, region, top, latest, related) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14 , $15)`,
+		title_latin, description_latin, title_cyrillic, description_cyrillic, photoForDB, video, audioForDB, coverImageForDB, tagsString, categoryInt, subcategoryInt, regionInt, topBool, latestBool, relatedInt)
 	if err != nil {
-		log.Println(err)
+		log.Println(err, categoryInt)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
