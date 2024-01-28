@@ -1,4 +1,4 @@
-CREATE TABLE articles (
+CREATE TABLE IF NOT EXISTS articles (
     id BIGSERIAL PRIMARY KEY,
     title_latin TEXT NOT NULL,
     description_latin TEXT,

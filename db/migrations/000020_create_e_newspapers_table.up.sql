@@ -1,4 +1,4 @@
-CREATE TABLE e_newspapers (
+CREATE TABLE IF NOT EXISTS e_newspapers (
     id SERIAL PRIMARY KEY,
     title_latin TEXT,
     title_cyrillic TEXT,

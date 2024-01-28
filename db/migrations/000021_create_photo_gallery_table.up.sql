@@ -1,5 +1,5 @@
 -- Creating the 'photo_gallery' table
-CREATE TABLE photo_gallery (
+CREATE TABLE IF NOT EXISTS photo_gallery (
     id SERIAL PRIMARY KEY,
     title TEXT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -7,7 +7,7 @@ CREATE TABLE photo_gallery (
 );
 
 -- Creating the 'photo_gallery_photos' table
-CREATE TABLE photo_gallery_photos (
+CREATE TABLE IF NOT EXISTS photo_gallery_photos (
     id SERIAL PRIMARY KEY,
     photo_gallery INTEGER NOT NULL REFERENCES photo_gallery(id),
     file_path TEXT NOT NULL,

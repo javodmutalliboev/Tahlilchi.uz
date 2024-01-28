@@ -1,4 +1,4 @@
-CREATE TABLE business_promotional_posts (
+CREATE TABLE IF NOT EXISTS business_promotional_posts (
     id serial PRIMARY KEY,
     title_latin text NOT NULL UNIQUE,
     description_latin text,

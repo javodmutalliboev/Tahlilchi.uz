@@ -1,4 +1,4 @@
-CREATE TABLE article_category (
+CREATE TABLE IF NOT EXISTS article_category (
     id SERIAL PRIMARY KEY,
     title_latin TEXT NOT NULL UNIQUE,
     description_latin TEXT,

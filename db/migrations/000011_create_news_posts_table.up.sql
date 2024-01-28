@@ -1,4 +1,4 @@
-CREATE TABLE news_posts (
+CREATE TABLE IF NOT EXISTS news_posts (
     id SERIAL PRIMARY KEY,
     title_latin TEXT NOT NULL,
     description_latin TEXT NOT NULL,
