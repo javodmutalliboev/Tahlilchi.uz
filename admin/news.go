@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -139,6 +140,8 @@ func addRegions(w http.ResponseWriter, r *http.Request) {
 
 	response.Res(w, "success", http.StatusCreated, "Regions added successfully")
 }
+
+var re = regexp.MustCompile(`^(true|false)$`)
 
 func addNewsPost(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseMultipartForm(15 << 20) // Max memory 15MB
@@ -275,6 +278,11 @@ func addNewsPost(w http.ResponseWriter, r *http.Request) {
 
 	var topBool sql.NullBool
 	if top := r.FormValue("top"); top != "" {
+		if !re.MatchString(top) {
+			response.Res(w, "error", http.StatusBadRequest, "invalid top value")
+			return
+		}
+
 		topBool.Bool, err = strconv.ParseBool(top)
 		if err != nil {
 			log.Println(err)
@@ -286,6 +294,11 @@ func addNewsPost(w http.ResponseWriter, r *http.Request) {
 
 	var latestBool sql.NullBool
 	if latest := r.FormValue("latest"); latest != "" {
+		if !re.MatchString(latest) {
+			response.Res(w, "error", http.StatusBadRequest, "invalid latest value")
+			return
+		}
+
 		latestBool.Bool, err = strconv.ParseBool(latest)
 		if err != nil {
 			log.Println(err)
@@ -417,7 +430,7 @@ func editNewsPost(w http.ResponseWriter, r *http.Request) {
 	if title_latin != "" {
 		sqlStatement := `
 			UPDATE news_posts
-			SET title_latin = $1, edited_at = NOW() 
+			SET title_latin = $1, updated_at = NOW() 
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, title_latin, id)
@@ -432,7 +445,7 @@ func editNewsPost(w http.ResponseWriter, r *http.Request) {
 	if description_latin != "" {
 		sqlStatement := `
 			UPDATE news_posts
-			SET description_latin = $1, edited_at = NOW()
+			SET description_latin = $1, updated_at = NOW()
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, description_latin, id)
@@ -447,7 +460,7 @@ func editNewsPost(w http.ResponseWriter, r *http.Request) {
 	if title_cyrillic != "" {
 		sqlStatement := `
 			UPDATE news_posts
-			SET title_cyrillic = $1, edited_at = NOW()
+			SET title_cyrillic = $1, updated_at = NOW()
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, title_cyrillic, id)
@@ -462,7 +475,7 @@ func editNewsPost(w http.ResponseWriter, r *http.Request) {
 	if description_cyrillic != "" {
 		sqlStatement := `
 			UPDATE news_posts
-			SET description_cyrillic = $1, edited_at = NOW()
+			SET description_cyrillic = $1, updated_at = NOW()
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, description_cyrillic, id)
@@ -489,7 +502,7 @@ func editNewsPost(w http.ResponseWriter, r *http.Request) {
 		photo.Close()
 		sqlStatement := `
 			UPDATE news_posts
-			SET photo = $1, edited_at = NOW()
+			SET photo = $1, updated_at = NOW()
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, photoForDB, id)
@@ -500,31 +513,46 @@ func editNewsPost(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	video, video_header, err := r.FormFile("video")
-	if err != nil && err != http.ErrMissingFile {
-		log.Printf("video: %v", err)
-		response.Res(w, "error", http.StatusInternalServerError, "server error")
-		return
-	} else if err == http.ErrMissingFile {
-	} else {
-		if video_header.Size > int64(6<<20) {
-			response.Res(w, "error", http.StatusBadRequest, "Video exceeds 6MB limit")
-			return
-		}
-		videoForDB, _ := io.ReadAll(video)
-		video.Close()
+	video := r.FormValue("video")
+	if video != "" {
 		sqlStatement := `
 			UPDATE news_posts
-			SET video = $1, edited_at = NOW()
+			SET video = $1, updated_at = NOW()
 			WHERE id = $2;
 		`
-		_, err = db.Exec(sqlStatement, videoForDB, id)
+		_, err = db.Exec(sqlStatement, video, id)
 		if err != nil {
 			log.Printf("%v: writing video into db: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
 			return
 		}
 	}
+	/*
+		if err != nil && err != http.ErrMissingFile {
+			log.Printf("video: %v", err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		} else if err == http.ErrMissingFile {
+		} else {
+			if video_header.Size > int64(6<<20) {
+				response.Res(w, "error", http.StatusBadRequest, "Video exceeds 6MB limit")
+				return
+			}
+			videoForDB, _ := io.ReadAll(video)
+			video.Close()
+			sqlStatement := `
+				UPDATE news_posts
+				SET video = $1, updated_at = NOW()
+				WHERE id = $2;
+			`
+			_, err = db.Exec(sqlStatement, videoForDB, id)
+			if err != nil {
+				log.Printf("%v: writing video into db: %v", r.URL, err)
+				response.Res(w, "error", http.StatusInternalServerError, "server error")
+				return
+			}
+		}
+	*/
 
 	audio, audio_header, err := r.FormFile("audio")
 	if err != nil && err != http.ErrMissingFile {
@@ -541,7 +569,7 @@ func editNewsPost(w http.ResponseWriter, r *http.Request) {
 		audio.Close()
 		sqlStatement := `
 			UPDATE news_posts
-			SET audio = $1, edited_at = NOW()
+			SET audio = $1, updated_at = NOW()
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, audioForDB, id)
@@ -567,7 +595,7 @@ func editNewsPost(w http.ResponseWriter, r *http.Request) {
 		cover_image.Close()
 		sqlStatement := `
 			UPDATE news_posts
-			SET cover_image = $1, edited_at = NOW()
+			SET cover_image = $1, updated_at = NOW()
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, coverImageForDB, id)
@@ -582,12 +610,142 @@ func editNewsPost(w http.ResponseWriter, r *http.Request) {
 		tagsString := "{" + strings.Join(tags, ",") + "}"
 		sqlStatement := `
 			UPDATE news_posts
-			SET tags = $1, edited_at = NOW()
+			SET tags = $1, updated_at = NOW()
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, tagsString, id)
 		if err != nil {
 			log.Printf("%v: writing tags into db: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+	}
+
+	if category := r.FormValue("category"); category != "" {
+		categoryInt, err := strconv.ParseInt(category, 10, 64)
+		if err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+		sqlStatement := `
+			UPDATE news_posts
+			SET category = $1, updated_at = NOW()
+			WHERE id = $2;
+		`
+		_, err = db.Exec(sqlStatement, categoryInt, id)
+		if err != nil {
+			log.Printf("%v: writing category into db: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+	}
+
+	if subcategory := r.FormValue("subcategory"); subcategory != "" {
+		subcategoryInt, err := strconv.ParseInt(subcategory, 10, 64)
+		if err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+		sqlStatement := `
+			UPDATE news_posts
+			SET subcategory = $1, updated_at = NOW()
+			WHERE id = $2;
+		`
+		_, err = db.Exec(sqlStatement, subcategoryInt, id)
+		if err != nil {
+			log.Printf("%v: writing subcategory into db: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+	}
+
+	if region := r.FormValue("region"); region != "" {
+		regionInt, err := strconv.ParseInt(region, 10, 64)
+		if err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+		sqlStatement := `
+			UPDATE news_posts
+			SET region = $1, updated_at = NOW()
+			WHERE id = $2;
+		`
+		_, err = db.Exec(sqlStatement, regionInt, id)
+		if err != nil {
+			log.Printf("%v: writing region into db: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+	}
+
+	if top := r.FormValue("top"); top != "" {
+		if !re.MatchString(top) {
+			response.Res(w, "error", http.StatusBadRequest, "invalid top value")
+			return
+		}
+
+		topBool, err := strconv.ParseBool(top)
+		if err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+		sqlStatement := `
+			UPDATE news_posts
+			SET top = $1, updated_at = NOW()
+			WHERE id = $2;
+		`
+		_, err = db.Exec(sqlStatement, topBool, id)
+		if err != nil {
+			log.Printf("%v: writing top into db: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+	}
+
+	if latest := r.FormValue("latest"); latest != "" {
+		if !re.MatchString(latest) {
+			response.Res(w, "error", http.StatusBadRequest, "invalid latest value")
+			return
+		}
+
+		latestBool, err := strconv.ParseBool(latest)
+		if err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+		sqlStatement := `
+			UPDATE news_posts
+			SET latest = $1, updated_at = NOW()
+			WHERE id = $2;
+		`
+		_, err = db.Exec(sqlStatement, latestBool, id)
+		if err != nil {
+			log.Printf("%v: writing latest into db: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+	}
+
+	if related := r.FormValue("related"); related != "" {
+		relatedInt, err := strconv.ParseInt(related, 10, 64)
+		if err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+		sqlStatement := `
+			UPDATE news_posts
+			SET related = $1, updated_at = NOW()
+			WHERE id = $2;
+		`
+		_, err = db.Exec(sqlStatement, relatedInt, id)
+		if err != nil {
+			log.Printf("%v: writing related into db: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
 			return
 		}
