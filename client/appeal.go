@@ -251,12 +251,14 @@ func sendToTBot(db *sql.DB, id int64) error {
 
 	// Send a message to the Telegram bot
 	chatID, _ := strconv.ParseInt(os.Getenv("TELEGRAM_CHAT_ID"), 10, 64)
-	msg := tgbotapi.NewMessage(chatID, fmt.Sprintf("Yangi murojaat keldi | Янги мурожаат келди\nMurojaatchining ismi | Мурожаатчининг исми: %s\nFamiliyasi | Фамилияси: %s\nTelefon raqami | Телефон рақами: %s\nXabar | Хабар: %s", name, surname, phoneNumber, message))
+	msg := tgbotapi.NewMessage(chatID, fmt.Sprintf("Янги мурожаат келди\nМурожаатчининг исми: %s\nФамилияси: %s\nТелефон рақами: %s\nХабар: %s", name, surname, phoneNumber, message))
 
 	_, err = bot.Send(msg)
 	if err != nil {
 		return err
 	}
+
+	const fileSizeLimit int = 50 * 1024 * 1024 // 50MB
 
 	// Send the picture to the Telegram Bot, if it exists
 	if picture.Valid {
@@ -278,12 +280,21 @@ func sendToTBot(db *sql.DB, id int64) error {
 			return err
 		}
 
-		// Send the picture
-		pic := tgbotapi.NewPhotoUpload(chatID, tgbotapi.FileBytes{Name: "picture.jpg", Bytes: picBytes})
-		pic.Caption = fmt.Sprintf("Murojaatchining ismi | Мурожаатчининг исми: %s\nFamiliyasi | Фамилияси: %s\nTelefon raqami | Телефон рақами: %s", name, surname, phoneNumber)
-		_, err = bot.Send(pic)
-		if err != nil {
-			return err
+		if len(picBytes) > fileSizeLimit {
+			message := fmt.Sprintf("[%s %s %s] дан мурожаатда телеграм бот 50МБ ҳажм чегарасидан ошган расм келди. Уни телеграм бот юклай олмайди. Илтимос уни вебсайт администратор панелида коʻринг.", name, surname, phoneNumber)
+			msg := tgbotapi.NewMessage(chatID, message)
+			_, err = bot.Send(msg)
+			if err != nil {
+				return err
+			}
+		} else {
+			// Send the picture
+			pic := tgbotapi.NewPhotoUpload(chatID, tgbotapi.FileBytes{Name: "picture.jpg", Bytes: picBytes})
+			pic.Caption = fmt.Sprintf("Мурожаатчининг исми: %s\nФамилияси: %s\nТелефон рақами: %s", name, surname, phoneNumber)
+			_, err = bot.Send(pic)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -307,12 +318,21 @@ func sendToTBot(db *sql.DB, id int64) error {
 			return err
 		}
 
-		// Send the video
-		vid := tgbotapi.NewVideoUpload(chatID, tgbotapi.FileBytes{Name: "video.mp4", Bytes: vidBytes})
-		vid.Caption = fmt.Sprintf("Murojaatchining ismi | Мурожаатчининг исми: %s\nFamiliyasi | Фамилияси: %s\nTelefon raqami | Телефон рақами: %s", name, surname, phoneNumber)
-		_, err = bot.Send(vid)
-		if err != nil {
-			return err
+		if len(vidBytes) > fileSizeLimit {
+			message := fmt.Sprintf("[%s %s %s] дан мурожаатда телеграм бот 50МБ ҳажм чегарасидан ошган видео келди. Уни телеграм бот юклай олмайди. Илтимос уни вебсайт администратор панелида коʻринг.", name, surname, phoneNumber)
+			msg := tgbotapi.NewMessage(chatID, message)
+			_, err = bot.Send(msg)
+			if err != nil {
+				return err
+			}
+		} else {
+			// Send the video
+			vid := tgbotapi.NewVideoUpload(chatID, tgbotapi.FileBytes{Name: "video.mp4", Bytes: vidBytes})
+			vid.Caption = fmt.Sprintf("Мурожаатчининг исми: %s\nФамилияси: %s\nТелефон рақами: %s", name, surname, phoneNumber)
+			_, err = bot.Send(vid)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
