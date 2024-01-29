@@ -905,7 +905,7 @@ func getNewsPosts(w http.ResponseWriter, r *http.Request) {
 	// Parse the limit from the query parameters
 	limitStr, ok := r.URL.Query()["limit"]
 	if !ok || len(limitStr[0]) < 1 {
-		log.Println("Url Param 'limit' is missing. Setting default value to 10.")
+		log.Printf("%v: Url Param 'limit' is missing. Setting default value to 10.", r.URL)
 		limitStr = []string{"10"}
 	}
 	limit, _ := strconv.Atoi(limitStr[0])

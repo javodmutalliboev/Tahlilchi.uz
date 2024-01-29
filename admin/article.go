@@ -600,3 +600,71 @@ func getArticleCount(w http.ResponseWriter, r *http.Request) {
 
 	response.Res(w, "success", http.StatusOK, ArticleCount{Period: period, Count: count})
 }
+
+type Article struct {
+	ID                  int
+	TitleLatin          string
+	DescriptionLatin    string
+	TitleCyrillic       string
+	DescriptionCyrillic string
+	Photos              [][]byte
+	Videos              []string
+	CoverImage          []byte
+	Tags                []string
+	Archived            bool
+	CreatedAt           string
+	UpdatedAt           string
+	Category            *int
+	Related             *int
+}
+
+func getArticles(w http.ResponseWriter, r *http.Request) {
+	// Parse the page number from the query parameters
+	pageStr, ok := r.URL.Query()["page"]
+	if !ok || len(pageStr[0]) < 1 {
+		log.Printf("%v: Url Param 'page' is missing. Setting default value to 1.", r.URL)
+		pageStr = []string{"1"}
+	}
+	page, _ := strconv.Atoi(pageStr[0])
+
+	// Parse the limit from the query parameters
+	limitStr, ok := r.URL.Query()["limit"]
+	if !ok || len(limitStr[0]) < 1 {
+		log.Printf("%v: Url Param 'limit' is missing. Setting default value to 10.", r.URL)
+		limitStr = []string{"10"}
+	}
+	limit, _ := strconv.Atoi(limitStr[0])
+
+	// Calculate the starting index
+	var start = (page - 1) * limit
+
+	database, err := db.DB()
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	rows, err := database.Query("SELECT * FROM articles ORDER BY id DESC LIMIT $1 OFFSET $2", limit, start)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer rows.Close()
+
+	var articles []Article
+	for rows.Next() {
+		var a Article
+		err := rows.Scan(&a.ID, &a.TitleLatin, &a.DescriptionLatin, &a.TitleCyrillic, &a.DescriptionCyrillic, pq.Array(&a.Photos), pq.Array(&a.Videos), &a.CoverImage, pq.Array(&a.Tags), &a.Archived, &a.CreatedAt, &a.UpdatedAt, &a.Category, &a.Related)
+		if err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+		articles = append(articles, a)
+	}
+
+	response.Res(w, "success", http.StatusOK, articles)
+}
