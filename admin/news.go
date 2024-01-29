@@ -10,10 +10,12 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"Tahlilchi.uz/db"
 	"Tahlilchi.uz/response"
 	"github.com/gorilla/mux"
+	"github.com/lib/pq"
 )
 
 type Category struct {
@@ -889,4 +891,78 @@ func getNewsPostCount(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.Res(w, "success", http.StatusOK, NewsPostCount{Period: period, Count: count})
+}
+
+func getNewsPosts(w http.ResponseWriter, r *http.Request) {
+	// Parse the page number from the query parameters
+	pageStr, ok := r.URL.Query()["page"]
+	if !ok || len(pageStr[0]) < 1 {
+		log.Printf("%v: Url Param 'page' is missing. Setting default value to 1.", r.URL)
+		pageStr = []string{"1"}
+	}
+	page, _ := strconv.Atoi(pageStr[0])
+
+	// Parse the limit from the query parameters
+	limitStr, ok := r.URL.Query()["limit"]
+	if !ok || len(limitStr[0]) < 1 {
+		log.Println("Url Param 'limit' is missing. Setting default value to 10.")
+		limitStr = []string{"10"}
+	}
+	limit, _ := strconv.Atoi(limitStr[0])
+
+	// Calculate the starting index
+	var start = (page - 1) * limit
+
+	database, err := db.DB()
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	// Query the database
+	rows, err := database.Query("SELECT * FROM news_posts ORDER BY id DESC LIMIT $1 OFFSET $2", limit, start)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer rows.Close()
+
+	// Write the posts to the response
+	var posts []NewsPost
+	for rows.Next() {
+		var p NewsPost
+		if err := rows.Scan(&p.ID, &p.TitleLatin, &p.DescriptionLatin, &p.TitleCyrillic, &p.DescriptionCyrillic, &p.Photo, &p.Video, &p.Audio, &p.CoverImage, pq.Array(&p.Tags), &p.Archived, &p.CreatedAt, &p.UpdatedAt, &p.Category, &p.Subcategory, &p.Region, &p.Top, &p.Latest, &p.Related); err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+		posts = append(posts, p)
+	}
+
+	response.Res(w, "success", http.StatusOK, posts)
+}
+
+type NewsPost struct {
+	ID                  int
+	TitleLatin          string
+	DescriptionLatin    string
+	TitleCyrillic       string
+	DescriptionCyrillic string
+	Photo               []byte
+	Video               string
+	Audio               []byte
+	CoverImage          []byte
+	Tags                []string
+	Archived            bool
+	CreatedAt           time.Time
+	UpdatedAt           time.Time
+	Category            *int
+	Subcategory         *int
+	Region              *int
+	Top                 *bool
+	Latest              *bool
+	Related             *int
 }

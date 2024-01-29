@@ -26,6 +26,7 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	newsPostRouter.HandleFunc("/delete/{id}", middleware.Chain(deleteNewsPost, authPackage.AdminAuth())).Methods("DELETE")
 	newsPostRouter.HandleFunc("/archive/{id}", middleware.Chain(archiveNewsPost, authPackage.AdminAuth())).Methods("PATCH")
 	newsPostRouter.HandleFunc("/count/{period}", middleware.Chain(getNewsPostCount, authPackage.AdminAuth())).Methods("GET")
+	newsPostRouter.HandleFunc("/list", middleware.Chain(getNewsPosts, authPackage.AdminAuth())).Methods("GET")
 
 	articleRouter := adminRouter.PathPrefix("/article").Subrouter()
 	articleRouter.HandleFunc("/category", middleware.Chain(addArticleCategory, authPackage.AdminAuth())).Methods("POST")
