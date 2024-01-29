@@ -2,14 +2,17 @@ package admin
 
 import (
 	"bytes"
+	"database/sql"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"Tahlilchi.uz/db"
 	"Tahlilchi.uz/response"
+	"Tahlilchi.uz/toolkit"
 	"github.com/gorilla/mux"
 	"github.com/lib/pq"
 )
@@ -90,25 +93,12 @@ func addArticle(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Get the videos files
-	videos := r.MultipartForm.File["videos"]
-	if len(videos) == 0 {
-		videos = nil
+	// Get the videos
+	videos, ok := r.Form["videos"]
+	if !ok {
+		videos = []string{}
 	}
-
-	var videosForDB bytes.Buffer
-
-	for _, fh := range videos {
-		if fh.Size > 6<<20 {
-			log.Printf("%v: video size exceeds 6MB limit: %v", r.URL, fh.Size)
-			response.Res(w, "error", http.StatusBadRequest, "video size exceeds 6MB limit")
-			return
-		} else {
-			file, _ := fh.Open()
-			io.Copy(&videosForDB, file)
-			file.Close()
-		}
-	}
+	videosString := toolkit.SliceToString(videos)
 
 	// Get the cover_image file
 	coverImage, coverImageHeader, err := r.FormFile("cover_image")
@@ -143,6 +133,30 @@ func addArticle(w http.ResponseWriter, r *http.Request) {
 	// Convert tags to PostgreSQL array format
 	tagsString := "{" + strings.Join(tags, ",") + "}"
 
+	category := r.FormValue("category")
+	var categoryInt64 sql.NullInt64
+	if category != "" {
+		categoryInt64.Int64, err = strconv.ParseInt(category, 10, 64)
+		if err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusBadRequest, "invalid category value")
+			return
+		}
+		categoryInt64.Valid = true
+	}
+
+	related := r.FormValue("related")
+	var relatedInt64 sql.NullInt64
+	if related != "" {
+		relatedInt64.Int64, err = strconv.ParseInt(related, 10, 64)
+		if err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusBadRequest, "invalid related value")
+			return
+		}
+		relatedInt64.Valid = true
+	}
+
 	db, err := db.DB()
 	if err != nil {
 		log.Printf("%v: db connection error: %v", r.URL, err)
@@ -151,8 +165,8 @@ func addArticle(w http.ResponseWriter, r *http.Request) {
 	}
 	defer db.Close()
 
-	_, err = db.Exec(`INSERT INTO articles (title_latin, description_latin, title_cyrillic, description_cyrillic, photos, videos, cover_image, tags) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-		titleLatin, descriptionLatin, titleCyrillic, descriptionCyrillic, pq.Array([][]byte{photosForDb.Bytes()}), pq.Array([][]byte{videosForDB.Bytes()}), coverImageForDB, tagsString)
+	_, err = db.Exec(`INSERT INTO articles (title_latin, description_latin, title_cyrillic, description_cyrillic, photos, videos, cover_image, tags, category, related) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+		titleLatin, descriptionLatin, titleCyrillic, descriptionCyrillic, pq.Array([][]byte{photosForDb.Bytes()}), videosString, coverImageForDB, tagsString, categoryInt64, relatedInt64)
 	if err != nil {
 		log.Printf("%v: db execution error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -254,7 +268,7 @@ func editArticle(w http.ResponseWriter, r *http.Request) {
 	if title_latin != "" {
 		sqlStatement := `
 			UPDATE articles
-			SET title_latin = $1, edited_at = NOW()
+			SET title_latin = $1, updated_at = NOW()
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, title_latin, id)
@@ -269,7 +283,7 @@ func editArticle(w http.ResponseWriter, r *http.Request) {
 	if description_latin != "" {
 		sqlStatement := `
 			UPDATE articles
-			SET description_latin = $1, edited_at = NOW()
+			SET description_latin = $1, updated_at = NOW()
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, description_latin, id)
@@ -284,7 +298,7 @@ func editArticle(w http.ResponseWriter, r *http.Request) {
 	if title_cyrillic != "" {
 		sqlStatement := `
 			UPDATE articles
-			SET title_cyrillic = $1, edited_at = NOW()
+			SET title_cyrillic = $1, updated_at = NOW()
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, title_cyrillic, id)
@@ -299,7 +313,7 @@ func editArticle(w http.ResponseWriter, r *http.Request) {
 	if description_cyrillic != "" {
 		sqlStatement := `
 			UPDATE articles
-			SET description_cyrillic = $1, edited_at = NOW()
+			SET description_cyrillic = $1, updated_at = NOW()
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, description_cyrillic, id)
@@ -332,7 +346,7 @@ func editArticle(w http.ResponseWriter, r *http.Request) {
 	if photosForDb.Len() > 0 {
 		sqlStatement := `
 			UPDATE articles
-			SET photos = $1, edited_at = NOW()
+			SET photos = $1, updated_at = NOW()
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, pq.Array([][]byte{photosForDb.Bytes()}), id)
@@ -343,32 +357,14 @@ func editArticle(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	videos := r.MultipartForm.File["videos"]
-	if len(videos) == 0 {
-		videos = nil
-	}
-
-	var videosForDB bytes.Buffer
-
-	for _, fh := range videos {
-		if fh.Size > 6<<20 {
-			log.Printf("%v: video size exceeds 6MB limit: %v", r.URL, fh.Size)
-			response.Res(w, "error", http.StatusBadRequest, "video size exceeds 6MB limit")
-			return
-		} else {
-			file, _ := fh.Open()
-			io.Copy(&videosForDB, file)
-			file.Close()
-		}
-	}
-
-	if videosForDB.Len() > 0 {
+	if videos, ok := r.Form["videos"]; ok {
+		videosString := "{" + strings.Join(videos, ",") + "}"
 		sqlStatement := `
 			UPDATE articles
-			SET videos = $1, edited_at = NOW()
+			SET videos = $1, updated_at = NOW()
 			WHERE id = $2;
 		`
-		_, err = db.Exec(sqlStatement, pq.Array([][]byte{videosForDB.Bytes()}), id)
+		_, err = db.Exec(sqlStatement, videosString, id)
 		if err != nil {
 			log.Printf("%v: writing videos into db: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -399,7 +395,7 @@ func editArticle(w http.ResponseWriter, r *http.Request) {
 		coverImage.Close()
 		sqlStatement := `
 			UPDATE articles
-			SET cover_image = $1, edited_at = NOW()
+			SET cover_image = $1, updated_at = NOW()
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, coverImageForDB, id)
@@ -414,12 +410,52 @@ func editArticle(w http.ResponseWriter, r *http.Request) {
 		tagsString := "{" + strings.Join(tags, ",") + "}"
 		sqlStatement := `
 			UPDATE articles
-			SET tags = $1, edited_at = NOW()
+			SET tags = $1, updated_at = NOW()
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, tagsString, id)
 		if err != nil {
 			log.Printf("%v: writing tags into db: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+	}
+
+	if category := r.FormValue("category"); category != "" {
+		categoryInt, err := strconv.ParseInt(category, 10, 64)
+		if err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+		sqlStatement := `
+			UPDATE articles
+			SET category = $1, updated_at = NOW()
+			WHERE id = $2;
+		`
+		_, err = db.Exec(sqlStatement, categoryInt, id)
+		if err != nil {
+			log.Printf("%v: writing category into db: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+	}
+
+	if related := r.FormValue("related"); related != "" {
+		relatedInt, err := strconv.ParseInt(related, 10, 64)
+		if err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+		sqlStatement := `
+			UPDATE articles
+			SET related = $1, updated_at = NOW()
+			WHERE id = $2;
+		`
+		_, err = db.Exec(sqlStatement, relatedInt, id)
+		if err != nil {
+			log.Printf("%v: writing related into db: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
 			return
 		}
