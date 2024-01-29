@@ -9,5 +9,11 @@ func ClientRouter(r *mux.Router) {
 	clientRouter.HandleFunc("/appeal", Appeal).Methods("POST")
 
 	newsRouter := clientRouter.PathPrefix("/news").Subrouter()
-	newsRouter.HandleFunc("/all", getAllNewsPosts)
+	newsRouter.HandleFunc("/category/{category}", getNewsByCategory).Methods("GET")
+	newsRouter.HandleFunc("/subcategory/{subcategory}", getNewsBySubCategory).Methods("GET")
+	newsRouter.HandleFunc("/region/{region}", getNewsByRegion).Methods("GET")
+	newsRouter.HandleFunc("/top", getTopNews).Methods("GET")
+	newsRouter.HandleFunc("/latest", getLatestNews).Methods("GET")
+	newsRouter.HandleFunc("/related/{id}", getRelatedNewsPosts).Methods("GET")
+	newsRouter.HandleFunc("", getAllNewsPosts)
 }
