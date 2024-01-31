@@ -421,3 +421,43 @@ func getRelatedNewsPosts(w http.ResponseWriter, r *http.Request) {
 
 	response.Res(w, "success", http.StatusOK, posts)
 }
+
+func getCategoryList(w http.ResponseWriter, r *http.Request) {
+	database, err := db.DB()
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	rows, err := database.Query("SELECT * FROM news_category ORDER BY id")
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer rows.Close()
+
+	var categories []CategoryForGet
+	for rows.Next() {
+		var c CategoryForGet
+		err := rows.Scan(&c.ID, &c.TitleLatin, &c.DescriptionLatin, &c.TitleCyrillic, &c.DescriptionCyrillic)
+		if err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+		categories = append(categories, c)
+	}
+
+	response.Res(w, "success", http.StatusOK, categories)
+}
+
+type CategoryForGet struct {
+	ID                  int    `json:"id"`
+	TitleLatin          string `json:"title_latin"`
+	DescriptionLatin    string `json:"description_latin"`
+	TitleCyrillic       string `json:"title_cyrillic"`
+	DescriptionCyrillic string `json:"description_cyrillic"`
+}
