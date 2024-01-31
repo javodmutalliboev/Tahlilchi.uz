@@ -6,6 +6,7 @@ import (
 	"Tahlilchi.uz/admin"
 	"Tahlilchi.uz/client"
 	"Tahlilchi.uz/routerFuncs"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
 
@@ -17,5 +18,9 @@ func Router() {
 	admin.AdminRouter(r)
 	client.ClientRouter(r)
 
-	http.ListenAndServe(":8080", r)
+	headersOk := handlers.AllowedHeaders([]string{"X-Requested-With"})
+	originsOk := handlers.AllowedOrigins([]string{"*"})
+	methodsOk := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PATCH", "DELETE", "OPTIONS"})
+
+	http.ListenAndServe(":8080", handlers.CORS(originsOk, headersOk, methodsOk)(r))
 }

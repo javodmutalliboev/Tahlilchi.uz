@@ -11,6 +11,7 @@ require (
 )
 
 require (
+	github.com/felixge/httpsnoop v1.0.3 // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
 	github.com/jackc/pgconn v1.14.0 // indirect
 	github.com/jackc/pgio v1.0.0 // indirect
@@ -25,6 +26,7 @@ require (
 	github.com/go-co-op/gocron v1.37.0 // indirect
 	github.com/go-telegram-bot-api/telegram-bot-api v4.6.4+incompatible // indirect
 	github.com/google/uuid v1.4.0 // indirect
+	github.com/gorilla/handlers v1.5.2
 	github.com/gorilla/securecookie v1.1.2 // indirect
 	github.com/jackc/pgx/v4 v4.18.1
 	github.com/robfig/cron/v3 v3.0.1 // indirect
