@@ -29,4 +29,8 @@ func ClientRouter(r *mux.Router) {
 	eNewspaperRouter := clientRouter.PathPrefix("/e-newspaper").Subrouter()
 	eNewspaperRouter.HandleFunc("/list", getENewspaperList).Methods("GET")
 	eNewspaperRouter.HandleFunc("/{alphabet}/{id}", getENewspaperByID).Methods("GET")
+
+	photoGalleryRouter := clientRouter.PathPrefix("/photo-gallery").Subrouter()
+	photoGalleryRouter.HandleFunc("/list", getPhotoGalleryList).Methods("GET")
+	photoGalleryRouter.HandleFunc("/{id}/photos", getPhotoGalleryPhotos).Methods("GET")
 }
