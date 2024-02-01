@@ -54,6 +54,7 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	eNewspaperRouter.HandleFunc("/delete/{id}", middleware.Chain(deleteENewspaper, authPackage.AdminAuth())).Methods("DELETE")
 	eNewspaperRouter.HandleFunc("/archive/{id}", middleware.Chain(archiveENewspaper, authPackage.AdminAuth())).Methods("PATCH")
 	eNewspaperRouter.HandleFunc("/count/{period}", middleware.Chain(getENewspaperCount, authPackage.AdminAuth())).Methods("GET")
+	eNewspaperRouter.HandleFunc("/list", middleware.Chain(getENewspaperList, authPackage.AdminAuth())).Methods("GET")
 
 	photoGalleryRouter := adminRouter.PathPrefix("/photo-gallery").Subrouter()
 	photoGalleryRouter.HandleFunc("/add", middleware.Chain(addPhotoGallery, authPackage.AdminAuth())).Methods("POST")
