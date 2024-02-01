@@ -58,9 +58,11 @@ func AdminRouter(r *mux.Router) *mux.Router {
 
 	photoGalleryRouter := adminRouter.PathPrefix("/photo-gallery").Subrouter()
 	photoGalleryRouter.HandleFunc("/add", middleware.Chain(addPhotoGallery, authPackage.AdminAuth())).Methods("POST")
+	photoGalleryRouter.HandleFunc("/list", middleware.Chain(getPhotoGalleryList, authPackage.AdminAuth())).Methods("GET")
 
 	photoGalleryPhotosRouter := photoGalleryRouter.PathPrefix("/{id}/photos").Subrouter()
 	photoGalleryPhotosRouter.HandleFunc("/add", middleware.Chain(photoGalleryAddPhotos, authPackage.AdminAuth())).Methods("POST")
+	photoGalleryPhotosRouter.Handle("", middleware.Chain(getPhotoGalleryPhotos, authPackage.AdminAuth())).Methods("GET")
 
 	contactRouter := adminRouter.PathPrefix("/contact").Subrouter()
 
