@@ -295,13 +295,13 @@ func createAdminContact(w http.ResponseWriter, r *http.Request) {
 }
 
 type AdminContactGET struct {
-	ID          int
-	Address     string
-	SocMedAcs   []string
-	PhoneNumber string
-	Email       string
-	CreatedAt   string
-	UpdatedAt   string
+	ID          int      `json:"id"`
+	Address     string   `json:"address"`
+	SocMedAcs   []string `json:"soc_med_acs"`
+	PhoneNumber string   `json:"phone_number"`
+	Email       string   `json:"email"`
+	CreatedAt   string   `json:"created_at"`
+	UpdatedAt   string   `json:"updated_at"`
 }
 
 func getAdminContact(w http.ResponseWriter, r *http.Request) {
