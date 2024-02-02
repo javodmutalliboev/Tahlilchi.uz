@@ -448,6 +448,26 @@ func getCategoryList(w http.ResponseWriter, r *http.Request) {
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
 			return
 		}
+
+		subRows, err := database.Query("SELECT * FROM news_subcategory WHERE category_id = $1", c.ID)
+		if err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+		defer subRows.Close()
+
+		for subRows.Next() {
+			var s Subcategory
+			err := subRows.Scan(&s.ID, &s.CategoryID, &s.TitleLatin, &s.DescriptionLatin, &s.TitleCyrillic, &s.DescriptionCyrillic)
+			if err != nil {
+				log.Printf("%v: error: %v", r.URL, err)
+				response.Res(w, "error", http.StatusInternalServerError, "server error")
+				return
+			}
+			c.Subcategories = append(c.Subcategories, s)
+		}
+
 		categories = append(categories, c)
 	}
 
@@ -455,7 +475,17 @@ func getCategoryList(w http.ResponseWriter, r *http.Request) {
 }
 
 type CategoryForGet struct {
+	ID                  int           `json:"id"`
+	TitleLatin          string        `json:"title_latin"`
+	DescriptionLatin    string        `json:"description_latin"`
+	TitleCyrillic       string        `json:"title_cyrillic"`
+	DescriptionCyrillic string        `json:"description_cyrillic"`
+	Subcategories       []Subcategory `json:"subcategories"`
+}
+
+type Subcategory struct {
 	ID                  int    `json:"id"`
+	CategoryID          int    `json:"category_id"`
 	TitleLatin          string `json:"title_latin"`
 	DescriptionLatin    string `json:"description_latin"`
 	TitleCyrillic       string `json:"title_cyrillic"`
