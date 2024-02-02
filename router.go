@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"os"
 
 	"Tahlilchi.uz/admin"
 	"Tahlilchi.uz/client"
@@ -19,8 +20,9 @@ func Router() {
 	client.ClientRouter(r)
 
 	headersOk := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type", "Authorization"})
-	originsOk := handlers.AllowedOrigins([]string{"*"})
+	originsOk := handlers.AllowedOrigins([]string{os.Getenv("ADMINCLIENT")})
 	methodsOk := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PATCH", "DELETE", "OPTIONS"})
+	credentials := handlers.AllowCredentials()
 
-	http.ListenAndServe(":8080", handlers.CORS(originsOk, headersOk, methodsOk)(r))
+	http.ListenAndServe(":8080", handlers.CORS(originsOk, headersOk, methodsOk, credentials)(r))
 }
