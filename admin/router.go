@@ -76,5 +76,8 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	contactRouter.HandleFunc("", middleware.Chain(getAdminContact, authPackage.AdminAuth())).Methods("GET")
 	contactRouter.HandleFunc("/{id}", middleware.Chain(updateAdminContact, authPackage.AdminAuth())).Methods("PATCH")
 
+	searchRouter := adminRouter.PathPrefix("/search").Subrouter()
+	searchRouter.HandleFunc("", search).Methods("GET")
+
 	return adminRouter
 }
