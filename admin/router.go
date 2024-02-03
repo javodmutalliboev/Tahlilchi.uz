@@ -28,6 +28,7 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	newsPostRouter.HandleFunc("/archive/{id}", middleware.Chain(archiveNewsPost, authPackage.AdminAuth())).Methods("PATCH")
 	newsPostRouter.HandleFunc("/count/{period}", middleware.Chain(getNewsPostCount, authPackage.AdminAuth())).Methods("GET")
 	newsPostRouter.HandleFunc("/list", middleware.Chain(getNewsPosts, authPackage.AdminAuth())).Methods("GET")
+	newsPostRouter.HandleFunc("/unarchive/{id}", middleware.Chain(unArchiveNewsPost, authPackage.AdminAuth())).Methods("PATCH")
 
 	articleRouter := adminRouter.PathPrefix("/article").Subrouter()
 	articleRouter.HandleFunc("/category", middleware.Chain(addArticleCategory, authPackage.AdminAuth())).Methods("POST")
@@ -37,6 +38,7 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	articleRouter.HandleFunc("/archive/{id}", middleware.Chain(archiveArticle, authPackage.AdminAuth())).Methods("PATCH")
 	articleRouter.HandleFunc("/count/{period}", middleware.Chain(getArticleCount, authPackage.AdminAuth())).Methods("GET")
 	articleRouter.HandleFunc("/list", middleware.Chain(getArticles, authPackage.AdminAuth())).Methods("GET")
+	articleRouter.HandleFunc("/unarchive/{id}", middleware.Chain(unArchiveArticle, authPackage.AdminAuth())).Methods("PATCH")
 
 	businessPromotionalRouter := adminRouter.PathPrefix("/business-promotional").Subrouter()
 	businessPromotionalRouter.HandleFunc("/post", middleware.Chain(addBusinessPromotionalPost, authPackage.AdminAuth())).Methods("POST")
@@ -47,6 +49,7 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	businessPromotionalPostRouter.HandleFunc("/archive/{id}", middleware.Chain(archiveBPPost, authPackage.AdminAuth())).Methods("PATCH")
 	businessPromotionalPostRouter.HandleFunc("/count/{period}", middleware.Chain(getBusinessPromotionalPostCount, authPackage.AdminAuth())).Methods("GET")
 	businessPromotionalPostRouter.HandleFunc("/list", middleware.Chain(getBusinessPromotionalPosts, authPackage.AdminAuth())).Methods("GET")
+	businessPromotionalPostRouter.HandleFunc("/unarchive/{id}", middleware.Chain(unArchiveBPPost, authPackage.AdminAuth())).Methods("PATCH")
 
 	eNewspaperRouter := adminRouter.PathPrefix("/e-newspaper").Subrouter()
 	eNewspaperRouter.HandleFunc("/add", middleware.Chain(addENewspaper, authPackage.AdminAuth())).Methods("POST")
@@ -55,6 +58,7 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	eNewspaperRouter.HandleFunc("/archive/{id}", middleware.Chain(archiveENewspaper, authPackage.AdminAuth())).Methods("PATCH")
 	eNewspaperRouter.HandleFunc("/count/{period}", middleware.Chain(getENewspaperCount, authPackage.AdminAuth())).Methods("GET")
 	eNewspaperRouter.HandleFunc("/list", middleware.Chain(getENewspaperList, authPackage.AdminAuth())).Methods("GET")
+	eNewspaperRouter.HandleFunc("/unarchive/{id}", middleware.Chain(unArchiveENewspaper, authPackage.AdminAuth())).Methods("PATCH")
 
 	photoGalleryRouter := adminRouter.PathPrefix("/photo-gallery").Subrouter()
 	photoGalleryRouter.HandleFunc("/add", middleware.Chain(addPhotoGallery, authPackage.AdminAuth())).Methods("POST")

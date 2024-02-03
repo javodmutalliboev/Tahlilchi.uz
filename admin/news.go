@@ -899,6 +899,54 @@ func archiveNewsPost(w http.ResponseWriter, r *http.Request) {
 	response.Res(w, "success", http.StatusOK, "archived")
 }
 
+func unArchiveNewsPost(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	exists, err := exists(id)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if !*exists {
+		log.Printf("%v: unarchive news post exists(id): %v", r.URL, *exists)
+		response.Res(w, "error", http.StatusBadRequest, "Cannot unarchive non existent news post")
+		return
+	}
+
+	archived, err := isArchived(id)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if !*archived {
+		log.Printf("%v: unarchive news post isArchived(id): %v", r.URL, *archived)
+		response.Res(w, "error", http.StatusBadRequest, "Cannot unarchive not archived news post")
+		return
+	}
+
+	db, err := db.DB()
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer db.Close()
+
+	_, err = db.Exec("UPDATE news_posts SET archived = false WHERE id = $1", id)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	response.Res(w, "success", http.StatusOK, "unarchive done")
+}
+
 type NewsPostCount struct {
 	Period string `json:"period"`
 	Count  int    `json:"count"`

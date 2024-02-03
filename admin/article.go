@@ -567,6 +567,54 @@ func archiveArticle(w http.ResponseWriter, r *http.Request) {
 	response.Res(w, "success", http.StatusOK, "archived")
 }
 
+func unArchiveArticle(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	exists, err := articleExists(id)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if !*exists {
+		log.Printf("%v: unarchive article articleExists(id): %v", r.URL, *exists)
+		response.Res(w, "error", http.StatusBadRequest, "Cannot unarchive non existent article")
+		return
+	}
+
+	archived, err := articleIsArchived(id)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if !*archived {
+		log.Printf("%v: unarchive article articleIsArchived(id): %v", r.URL, *archived)
+		response.Res(w, "error", http.StatusBadRequest, "Cannot unarchive not archived article")
+		return
+	}
+
+	db, err := db.DB()
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer db.Close()
+
+	_, err = db.Exec("UPDATE articles SET archived = false WHERE id = $1", id)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	response.Res(w, "success", http.StatusOK, "unarchive done")
+}
+
 type ArticleCount struct {
 	Period string `json:"period"`
 	Count  int    `json:"count"`

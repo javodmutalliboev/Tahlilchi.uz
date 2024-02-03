@@ -397,6 +397,54 @@ func archiveENewspaper(w http.ResponseWriter, r *http.Request) {
 	response.Res(w, "success", http.StatusOK, "archived")
 }
 
+func unArchiveENewspaper(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	exists, err := eNewspaperExists(id)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if !*exists {
+		log.Printf("%v: unarchive e-newspaper eNewspaperExists(id): %v", r.URL, *exists)
+		response.Res(w, "error", http.StatusBadRequest, "Cannot unarchive non existent e-newspaper")
+		return
+	}
+
+	archived, err := eNewspaperIsArchived(id)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if !*archived {
+		log.Printf("%v: unarchive e-newspaper eNewspaperIsArchived(id): %v", r.URL, *archived)
+		response.Res(w, "error", http.StatusBadRequest, "Cannot unarchive not archived e-newspaper")
+		return
+	}
+
+	db, err := db.DB()
+	if err != nil {
+		log.Printf("%v: db error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer db.Close()
+
+	_, err = db.Exec("UPDATE e_newspapers SET archived = false WHERE id = $1", id)
+	if err != nil {
+		log.Printf("%v: db error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	response.Res(w, "success", http.StatusOK, "unarchive done")
+}
+
 type ENewspaperCount struct {
 	Period string `json:"period"`
 	Count  int    `json:"count"`
