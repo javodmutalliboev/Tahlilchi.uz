@@ -3,6 +3,7 @@ package admin
 import (
 	"Tahlilchi.uz/authPackage"
 	"Tahlilchi.uz/middleware"
+	"Tahlilchi.uz/shared"
 	"github.com/gorilla/mux"
 )
 
@@ -30,6 +31,9 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	newsPostRouter.HandleFunc("/count/{period}", middleware.Chain(getNewsPostCount, authPackage.AdminAuth())).Methods("GET")
 	newsPostRouter.HandleFunc("/list", middleware.Chain(getNewsPosts, authPackage.AdminAuth())).Methods("GET")
 	newsPostRouter.HandleFunc("/unarchive/{id}", middleware.Chain(unArchiveNewsPost, authPackage.AdminAuth())).Methods("PATCH")
+	newsPostRouter.HandleFunc("/{id}/photo", middleware.Chain(shared.GetNewsPostPhoto, authPackage.AdminAuth())).Methods("GET")
+	newsPostRouter.HandleFunc("/{id}/audio", middleware.Chain(shared.GetNewsPostAudio, authPackage.AdminAuth())).Methods("GET")
+	newsPostRouter.HandleFunc("/{id}/cover_image", middleware.Chain(shared.GetNewsPostCoverImage, authPackage.AdminAuth())).Methods("GET")
 
 	articleRouter := adminRouter.PathPrefix("/article").Subrouter()
 	articleRouter.HandleFunc("/category", middleware.Chain(addArticleCategory, authPackage.AdminAuth())).Methods("POST")

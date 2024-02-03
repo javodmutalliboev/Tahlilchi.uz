@@ -1072,7 +1072,7 @@ func getNewsPosts(w http.ResponseWriter, r *http.Request) {
 	defer database.Close()
 
 	// Query the database
-	rows, err := database.Query("SELECT * FROM news_posts ORDER BY id DESC LIMIT $1 OFFSET $2", limit, start)
+	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, video, tags, archived, created_at, updated_at, category, subcategory, region, top, latest, related FROM news_posts ORDER BY id DESC LIMIT $1 OFFSET $2", limit, start)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -1084,7 +1084,7 @@ func getNewsPosts(w http.ResponseWriter, r *http.Request) {
 	var posts []NewsPost
 	for rows.Next() {
 		var p NewsPost
-		if err := rows.Scan(&p.ID, &p.TitleLatin, &p.DescriptionLatin, &p.TitleCyrillic, &p.DescriptionCyrillic, &p.Photo, &p.Video, &p.Audio, &p.CoverImage, pq.Array(&p.Tags), &p.Archived, &p.CreatedAt, &p.UpdatedAt, &p.Category, &p.Subcategory, &p.Region, &p.Top, &p.Latest, &p.Related); err != nil {
+		if err := rows.Scan(&p.ID, &p.TitleLatin, &p.DescriptionLatin, &p.TitleCyrillic, &p.DescriptionCyrillic, &p.Video, pq.Array(&p.Tags), &p.Archived, &p.CreatedAt, &p.UpdatedAt, &p.Category, &p.Subcategory, &p.Region, &p.Top, &p.Latest, &p.Related); err != nil {
 			log.Printf("%v: error: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
 			return
@@ -1125,10 +1125,7 @@ type NewsPost struct {
 	DescriptionLatin    string
 	TitleCyrillic       string
 	DescriptionCyrillic string
-	Photo               []byte
 	Video               string
-	Audio               []byte
-	CoverImage          []byte
 	Tags                []string
 	Archived            bool
 	CreatedAt           time.Time

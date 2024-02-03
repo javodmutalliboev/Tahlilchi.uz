@@ -1,6 +1,7 @@
 package client
 
 import (
+	"Tahlilchi.uz/shared"
 	"github.com/gorilla/mux"
 )
 
@@ -19,9 +20,9 @@ func ClientRouter(r *mux.Router) {
 	newsRouter.HandleFunc("/category", getCategoryList).Methods("GET")
 
 	newsPostRouter := newsRouter.PathPrefix("/post").Subrouter()
-	newsPostRouter.HandleFunc("/{id}/photo", getPhoto).Methods("GET")
-	newsPostRouter.HandleFunc("/{id}/audio", getAudio).Methods("GET")
-	newsPostRouter.HandleFunc("/{id}/cover_image", getCoverImage).Methods("GET")
+	newsPostRouter.HandleFunc("/{id}/photo", shared.GetNewsPostPhoto).Methods("GET")
+	newsPostRouter.HandleFunc("/{id}/audio", shared.GetNewsPostAudio).Methods("GET")
+	newsPostRouter.HandleFunc("/{id}/cover_image", shared.GetNewsPostCoverImage).Methods("GET")
 
 	articleRouter := clientRouter.PathPrefix("/article").Subrouter()
 	articleRouter.HandleFunc("/category/{category}", getArticleListByCategory).Methods("GET")
