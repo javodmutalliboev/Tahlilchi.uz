@@ -17,6 +17,45 @@ import (
 	"github.com/lib/pq"
 )
 
+func getArticleCategory(w http.ResponseWriter, r *http.Request) {
+	database, err := db.DB()
+	if err != nil {
+		log.Println(err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	rows, err := database.Query("select * from article_category order by id")
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	var articleCategoryList []ArticleCategory
+	for rows.Next() {
+		var a ArticleCategory
+		err := rows.Scan(&a.ID, &a.TitleLatin, &a.DescriptionLatin, &a.TitleCyrillic, &a.DescriptionCyrillic)
+		if err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+		articleCategoryList = append(articleCategoryList, a)
+	}
+
+	response.Res(w, "success", http.StatusOK, articleCategoryList)
+}
+
+type ArticleCategory struct {
+	ID                  int    `json:"id"`
+	TitleLatin          string `json:"title_latin"`
+	DescriptionLatin    string `json:"description_latin"`
+	TitleCyrillic       string `json:"title_cyrillic"`
+	DescriptionCyrillic string `json:"description_cyrillic"`
+}
+
 func addArticleCategory(w http.ResponseWriter, r *http.Request) {
 	db, err := db.DB()
 	if err != nil {

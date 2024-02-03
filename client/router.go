@@ -22,6 +22,7 @@ func ClientRouter(r *mux.Router) {
 	articleRouter.HandleFunc("/category/{category}", getArticleListByCategory).Methods("GET")
 	articleRouter.HandleFunc("/related/{related}", getArticleListByRelated).Methods("GET")
 	articleRouter.HandleFunc("/list", getAllArticles).Methods("GET")
+	articleRouter.HandleFunc("/category", getArticleCategory).Methods("GET")
 
 	bpPostRouter := clientRouter.PathPrefix("/business-promotional/post").Subrouter()
 	bpPostRouter.HandleFunc("/list", getBusinessPromotionalPosts).Methods("GET")
