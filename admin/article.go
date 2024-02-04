@@ -709,20 +709,19 @@ func getArticleCount(w http.ResponseWriter, r *http.Request) {
 }
 
 type Article struct {
-	ID                  int
-	TitleLatin          string
-	DescriptionLatin    string
-	TitleCyrillic       string
-	DescriptionCyrillic string
-	Photos              [][]byte
-	Videos              []string
-	CoverImage          []byte
-	Tags                []string
-	Archived            bool
-	CreatedAt           string
-	UpdatedAt           string
-	Category            *int
-	Related             *int
+	ID                  int      `json:"id"`
+	TitleLatin          string   `json:"title_latin"`
+	DescriptionLatin    string   `json:"description_latin"`
+	TitleCyrillic       string   `json:"title_cyrillic"`
+	DescriptionCyrillic string   `json:"description_cyrillic"`
+	Videos              []string `json:"videos"`
+	Tags                []string `json:"tags"`
+	Archived            bool     `json:"archived"`
+	CreatedAt           string   `json:"created_at"`
+	UpdatedAt           string   `json:"updated_at"`
+	Category            *int     `json:"category"`
+	Related             *int     `json:"related"`
+	Completed           bool     `json:"completed"`
 }
 
 func getArticles(w http.ResponseWriter, r *http.Request) {
@@ -753,7 +752,7 @@ func getArticles(w http.ResponseWriter, r *http.Request) {
 	}
 	defer database.Close()
 
-	rows, err := database.Query("SELECT * FROM articles ORDER BY id DESC LIMIT $1 OFFSET $2", limit, start)
+	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, videos, tags, archived, created_at, updated_at, category, related, completed FROM articles ORDER BY id DESC LIMIT $1 OFFSET $2", limit, start)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -764,7 +763,7 @@ func getArticles(w http.ResponseWriter, r *http.Request) {
 	var articles []Article
 	for rows.Next() {
 		var a Article
-		err := rows.Scan(&a.ID, &a.TitleLatin, &a.DescriptionLatin, &a.TitleCyrillic, &a.DescriptionCyrillic, pq.Array(&a.Photos), pq.Array(&a.Videos), &a.CoverImage, pq.Array(&a.Tags), &a.Archived, &a.CreatedAt, &a.UpdatedAt, &a.Category, &a.Related)
+		err := rows.Scan(&a.ID, &a.TitleLatin, &a.DescriptionLatin, &a.TitleCyrillic, &a.DescriptionCyrillic, pq.Array(&a.Videos), pq.Array(&a.Tags), &a.Archived, &a.CreatedAt, &a.UpdatedAt, &a.Category, &a.Related, &a.Completed)
 		if err != nil {
 			log.Printf("%v: error: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -774,4 +773,53 @@ func getArticles(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.Res(w, "success", http.StatusOK, articles)
+}
+
+// articleCompleted is a handler to update the completed field of an article
+func articleCompleted(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	exists, err := articleExists(id)
+	if err != nil {
+		log.Printf("%v: articleCompleted articleExists(id): %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if !*exists {
+		log.Printf("%v: articleCompleted articleExists(id): %v", r.URL, *exists)
+		response.Res(w, "error", http.StatusBadRequest, "Cannot update completed field of non existent article")
+		return
+	}
+
+	archived, err := articleIsArchived(id)
+	if err != nil {
+		log.Printf("%v: articleCompleted articleIsArchived(id): %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if *archived {
+		log.Printf("%v: articleCompleted articleIsArchived(id): %v", r.URL, *archived)
+		response.Res(w, "error", http.StatusBadRequest, "Cannot update completed field of archived article")
+		return
+	}
+
+	db, err := db.DB()
+	if err != nil {
+		log.Printf("%v: articleCompleted db.DB(): %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer db.Close()
+
+	_, err = db.Exec("UPDATE articles SET completed = NOT completed WHERE id = $1", id)
+	if err != nil {
+		log.Printf("%v: articleCompleted db.Exec(): %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	response.Res(w, "success", http.StatusOK, "completed field updated")
 }

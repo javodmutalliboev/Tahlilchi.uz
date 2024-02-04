@@ -3,7 +3,6 @@ package admin
 import (
 	"Tahlilchi.uz/authPackage"
 	"Tahlilchi.uz/middleware"
-	"Tahlilchi.uz/shared"
 	"github.com/gorilla/mux"
 )
 
@@ -32,9 +31,11 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	newsPostRouter.HandleFunc("/count", middleware.Chain(getNewsPostCountAll, authPackage.AdminAuth())).Methods("GET")
 	newsPostRouter.HandleFunc("/list", middleware.Chain(getNewsPosts, authPackage.AdminAuth())).Methods("GET")
 	newsPostRouter.HandleFunc("/unarchive/{id}", middleware.Chain(unArchiveNewsPost, authPackage.AdminAuth())).Methods("PATCH")
-	newsPostRouter.HandleFunc("/{id}/photo", middleware.Chain(shared.GetNewsPostPhoto, authPackage.AdminAuth())).Methods("GET")
-	newsPostRouter.HandleFunc("/{id}/audio", middleware.Chain(shared.GetNewsPostAudio, authPackage.AdminAuth())).Methods("GET")
-	newsPostRouter.HandleFunc("/{id}/cover_image", middleware.Chain(shared.GetNewsPostCoverImage, authPackage.AdminAuth())).Methods("GET")
+	newsPostRouter.HandleFunc("/{id}/photo", middleware.Chain(getNewsPostPhoto, authPackage.AdminAuth())).Methods("GET")
+	newsPostRouter.HandleFunc("/{id}/audio", middleware.Chain(getNewsPostAudio, authPackage.AdminAuth())).Methods("GET")
+	newsPostRouter.HandleFunc("/{id}/cover_image", middleware.Chain(getNewsPostCoverImage, authPackage.AdminAuth())).Methods("GET")
+	// route to make news post completed field true/false
+	newsPostRouter.HandleFunc("/completed/{id}", middleware.Chain(newsPostCompleted, authPackage.AdminAuth())).Methods("PATCH")
 
 	articleRouter := adminRouter.PathPrefix("/article").Subrouter()
 	articleRouter.HandleFunc("/category", middleware.Chain(addArticleCategory, authPackage.AdminAuth())).Methods("POST")
@@ -47,6 +48,8 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	articleRouter.HandleFunc("/count", middleware.Chain(getArticleCountAll, authPackage.AdminAuth())).Methods("GET")
 	articleRouter.HandleFunc("/list", middleware.Chain(getArticles, authPackage.AdminAuth())).Methods("GET")
 	articleRouter.HandleFunc("/unarchive/{id}", middleware.Chain(unArchiveArticle, authPackage.AdminAuth())).Methods("PATCH")
+	// route to make article completed field true/false
+	articleRouter.HandleFunc("/completed/{id}", middleware.Chain(articleCompleted, authPackage.AdminAuth())).Methods("PATCH")
 
 	businessPromotionalRouter := adminRouter.PathPrefix("/business-promotional").Subrouter()
 	businessPromotionalRouter.HandleFunc("/post", middleware.Chain(addBusinessPromotionalPost, authPackage.AdminAuth())).Methods("POST")
@@ -58,6 +61,8 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	businessPromotionalPostRouter.HandleFunc("/count/{period}", middleware.Chain(getBusinessPromotionalPostCount, authPackage.AdminAuth())).Methods("GET")
 	businessPromotionalPostRouter.HandleFunc("/list", middleware.Chain(getBusinessPromotionalPosts, authPackage.AdminAuth())).Methods("GET")
 	businessPromotionalPostRouter.HandleFunc("/unarchive/{id}", middleware.Chain(unArchiveBPPost, authPackage.AdminAuth())).Methods("PATCH")
+	// route to make business promotional post completed field true/false
+	businessPromotionalPostRouter.HandleFunc("/completed/{id}", middleware.Chain(businessPromotionalPostCompleted, authPackage.AdminAuth())).Methods("PATCH")
 
 	eNewspaperRouter := adminRouter.PathPrefix("/e-newspaper").Subrouter()
 	eNewspaperRouter.HandleFunc("/add", middleware.Chain(addENewspaper, authPackage.AdminAuth())).Methods("POST")
@@ -68,6 +73,8 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	eNewspaperRouter.HandleFunc("/count", middleware.Chain(getENewspaperCountAll, authPackage.AdminAuth())).Methods("GET")
 	eNewspaperRouter.HandleFunc("/list", middleware.Chain(getENewspaperList, authPackage.AdminAuth())).Methods("GET")
 	eNewspaperRouter.HandleFunc("/unarchive/{id}", middleware.Chain(unArchiveENewspaper, authPackage.AdminAuth())).Methods("PATCH")
+	// route to make e-newspaper completed field true/false
+	eNewspaperRouter.HandleFunc("/completed/{id}", middleware.Chain(eNewspaperCompleted, authPackage.AdminAuth())).Methods("PATCH")
 
 	photoGalleryRouter := adminRouter.PathPrefix("/photo-gallery").Subrouter()
 	photoGalleryRouter.HandleFunc("/add", middleware.Chain(addPhotoGallery, authPackage.AdminAuth())).Methods("POST")

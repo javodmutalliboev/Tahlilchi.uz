@@ -1093,7 +1093,7 @@ func getNewsPosts(w http.ResponseWriter, r *http.Request) {
 	defer database.Close()
 
 	// Query the database
-	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, video, tags, archived, created_at, updated_at, category, subcategory, region, top, latest, related FROM news_posts ORDER BY id DESC LIMIT $1 OFFSET $2", limit, start)
+	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, video, tags, archived, created_at, updated_at, category, subcategory, region, top, latest, related, completed FROM news_posts ORDER BY id DESC LIMIT $1 OFFSET $2", limit, start)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -1105,7 +1105,7 @@ func getNewsPosts(w http.ResponseWriter, r *http.Request) {
 	var posts []NewsPost
 	for rows.Next() {
 		var p NewsPost
-		if err := rows.Scan(&p.ID, &p.TitleLatin, &p.DescriptionLatin, &p.TitleCyrillic, &p.DescriptionCyrillic, &p.Video, pq.Array(&p.Tags), &p.Archived, &p.CreatedAt, &p.UpdatedAt, &p.Category, &p.Subcategory, &p.Region, &p.Top, &p.Latest, &p.Related); err != nil {
+		if err := rows.Scan(&p.ID, &p.TitleLatin, &p.DescriptionLatin, &p.TitleCyrillic, &p.DescriptionCyrillic, &p.Video, pq.Array(&p.Tags), &p.Archived, &p.CreatedAt, &p.UpdatedAt, &p.Category, &p.Subcategory, &p.Region, &p.Top, &p.Latest, &p.Related, &p.Completed); err != nil {
 			log.Printf("%v: error: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
 			return
@@ -1141,26 +1141,148 @@ func hasMoreProducts(db *sql.DB, page int, limit int) bool {
 }
 
 type NewsPost struct {
-	ID                  int
-	TitleLatin          string
-	DescriptionLatin    string
-	TitleCyrillic       string
-	DescriptionCyrillic string
-	Video               string
-	Tags                []string
-	Archived            bool
-	CreatedAt           time.Time
-	UpdatedAt           time.Time
-	Category            *int
-	Subcategory         *int
-	Region              *int
-	Top                 *bool
-	Latest              *bool
-	Related             *int
+	ID                  int       `json:"id"`
+	TitleLatin          string    `json:"title_latin"`
+	DescriptionLatin    string    `json:"description_latin"`
+	TitleCyrillic       string    `json:"title_cyrillic"`
+	DescriptionCyrillic string    `json:"description_cyrillic"`
+	Video               string    `json:"video"`
+	Tags                []string  `json:"tags"`
+	Archived            bool      `json:"archived"`
+	CreatedAt           time.Time `json:"created_at"`
+	UpdatedAt           time.Time `json:"updated_at"`
+	Category            *int      `json:"category"`
+	Subcategory         *int      `json:"subcategory"`
+	Region              *int      `json:"region"`
+	Top                 *bool     `json:"top"`
+	Latest              *bool     `json:"latest"`
+	Related             *int      `json:"related"`
+	Completed           bool      `json:"completed"`
 }
 
 type ResponseNewsPostsData struct {
 	NewsPosts    []NewsPost `json:"news_posts"`
 	NextPage     bool       `json:"next_page"`
 	PreviousPage bool       `json:"previous_page"`
+}
+
+// newsPostCompleted is a handler to update the completed field of a news post
+func newsPostCompleted(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	exists, err := exists(id)
+	if err != nil {
+		log.Printf("%v: news post completed exists(id): %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if !*exists {
+		log.Printf("%v: news post completed exists(id): %v", r.URL, *exists)
+		response.Res(w, "error", http.StatusBadRequest, "Cannot update completed field of non existent news post")
+		return
+	}
+
+	archived, err := isArchived(id)
+	if err != nil {
+		log.Printf("%v: news post completed isArchived(id): %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if *archived {
+		log.Printf("%v: news post completed isArchived(id): %v", r.URL, *archived)
+		response.Res(w, "error", http.StatusBadRequest, "Cannot update completed field of archived news post")
+		return
+	}
+
+	db, err := db.DB()
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer db.Close()
+
+	_, err = db.Exec("UPDATE news_posts SET completed = NOT completed WHERE id = $1", id)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	response.Res(w, "success", http.StatusOK, "completed field updated")
+}
+
+func getNewsPostPhoto(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	database, err := db.DB()
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	var photo []byte
+	err = database.QueryRow("SELECT photo FROM news_posts WHERE id = $1", id).Scan(&photo)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	w.Header().Set("Content-Type", "image/jpeg")
+	w.Write(photo)
+}
+
+func getNewsPostAudio(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	database, err := db.DB()
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	var audio []byte
+	err = database.QueryRow("SELECT audio FROM news_posts WHERE id = $1", id).Scan(&audio)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	w.Header().Set("Content-Type", "audio/mpeg")
+	w.Write(audio)
+}
+
+func getNewsPostCoverImage(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	database, err := db.DB()
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	var CoverImage []byte
+	err = database.QueryRow("SELECT cover_image FROM news_posts WHERE id = $1", id).Scan(&CoverImage)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	w.Header().Set("Content-Type", "image/jpeg")
+	w.Write(CoverImage)
 }

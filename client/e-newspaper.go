@@ -38,7 +38,7 @@ func getENewspaperList(w http.ResponseWriter, r *http.Request) {
 	}
 	defer database.Close()
 
-	rows, err := database.Query("SELECT * FROM e_newspapers WHERE archived = false ORDER BY id DESC LIMIT $1 OFFSET $2", limit, start)
+	rows, err := database.Query("SELECT * FROM e_newspapers WHERE archived = false AND completed = true ORDER BY id DESC LIMIT $1 OFFSET $2", limit, start)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -119,7 +119,7 @@ func getENewspaperByID(w http.ResponseWriter, r *http.Request) {
 
 	var eNewspaper ENewspaperByID
 	if alphabet == "latin" {
-		err = database.QueryRow("SELECT * FROM e_newspapers WHERE id = $1 AND archived = FALSE", idStr).Scan(&eNewspaper.ID, &eNewspaper.TitleLatin, &eNewspaper.FileLatin)
+		err = database.QueryRow("SELECT * FROM e_newspapers WHERE id = $1 AND archived = FALSE AND completed = TRUE", idStr).Scan(&eNewspaper.ID, &eNewspaper.TitleLatin, &eNewspaper.FileLatin)
 		if err != nil {
 			log.Printf("%v: error: %v", r.URL, err)
 			response.Res(w, "error", http.StatusBadRequest, err.Error())
@@ -128,7 +128,7 @@ func getENewspaperByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if alphabet == "cyrillic" {
-		err = database.QueryRow("SELECT * FROM e_newspapers WHERE id = $1 AND archived = FALSE", idStr).Scan(&eNewspaper.ID, &eNewspaper.TitleCyrillic, &eNewspaper.FileCyrillic)
+		err = database.QueryRow("SELECT * FROM e_newspapers WHERE id = $1 AND archived = FALSE AND completed = TRUE", idStr).Scan(&eNewspaper.ID, &eNewspaper.TitleCyrillic, &eNewspaper.FileCyrillic)
 		if err != nil {
 			log.Printf("%v: error: %v", r.URL, err)
 			response.Res(w, "error", http.StatusBadRequest, err.Error())

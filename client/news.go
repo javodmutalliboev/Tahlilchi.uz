@@ -48,7 +48,7 @@ func getAllNewsPosts(w http.ResponseWriter, r *http.Request) {
 	defer database.Close()
 
 	// Get the slice of posts
-	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, video, tags FROM news_posts WHERE archived = false ORDER BY id DESC LIMIT $1 OFFSET $2", limit, start)
+	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, video, tags FROM news_posts WHERE archived = false AND completed = true ORDER BY id DESC LIMIT $1 OFFSET $2", limit, start)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -106,7 +106,7 @@ func getNewsByCategory(w http.ResponseWriter, r *http.Request) {
 	}
 	defer database.Close()
 
-	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, video, tags FROM news_posts WHERE category = $1 AND archived = false ORDER BY id DESC LIMIT $2 OFFSET $3", category, limit, start)
+	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, video, tags FROM news_posts WHERE category = $1 AND archived = false AND completed = true ORDER BY id DESC LIMIT $2 OFFSET $3", category, limit, start)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -164,7 +164,7 @@ func getNewsBySubCategory(w http.ResponseWriter, r *http.Request) {
 	}
 	defer database.Close()
 
-	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, video, tags FROM news_posts WHERE subcategory = $1 AND archived = false ORDER BY id DESC LIMIT $2 OFFSET $3", subcategory, limit, start)
+	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, video, tags FROM news_posts WHERE subcategory = $1 AND archived = false AND completed = true ORDER BY id DESC LIMIT $2 OFFSET $3", subcategory, limit, start)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -222,7 +222,7 @@ func getNewsByRegion(w http.ResponseWriter, r *http.Request) {
 	}
 	defer database.Close()
 
-	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, video, tags FROM news_posts WHERE region = $1 AND archived = false ORDER BY id DESC LIMIT $2 OFFSET $3", region, limit, start)
+	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, video, tags FROM news_posts WHERE region = $1 AND archived = false AND completed = true ORDER BY id DESC LIMIT $2 OFFSET $3", region, limit, start)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -277,7 +277,7 @@ func getTopNews(w http.ResponseWriter, r *http.Request) {
 	}
 	defer database.Close()
 
-	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, video, tags FROM news_posts WHERE archived = false AND top = true ORDER BY id DESC LIMIT $1 OFFSET $2", limit, start)
+	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, video, tags FROM news_posts WHERE archived = false AND top = true AND completed = true ORDER BY id DESC LIMIT $1 OFFSET $2", limit, start)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -332,7 +332,7 @@ func getLatestNews(w http.ResponseWriter, r *http.Request) {
 	}
 	defer database.Close()
 
-	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, video, tags FROM news_posts WHERE archived = false AND latest = true ORDER BY id DESC LIMIT $1 OFFSET $2", limit, start)
+	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, video, tags FROM news_posts WHERE archived = false AND latest = true AND completed = true ORDER BY id DESC LIMIT $1 OFFSET $2", limit, start)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -390,7 +390,7 @@ func getRelatedNewsPosts(w http.ResponseWriter, r *http.Request) {
 	}
 	defer database.Close()
 
-	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, video, tags FROM news_posts WHERE related = $1 AND archived = false ORDER BY id DESC LIMIT $2 OFFSET $3", id, limit, start)
+	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, video, tags FROM news_posts WHERE related = $1 AND archived = false AND completed = true ORDER BY id DESC LIMIT $2 OFFSET $3", id, limit, start)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -487,4 +487,76 @@ type Subcategory struct {
 	DescriptionLatin    string `json:"description_latin"`
 	TitleCyrillic       string `json:"title_cyrillic"`
 	DescriptionCyrillic string `json:"description_cyrillic"`
+}
+
+func getNewsPostPhoto(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	database, err := db.DB()
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	var photo []byte
+	err = database.QueryRow("SELECT photo FROM news_posts WHERE id = $1 AND archived = false AND completed = true", id).Scan(&photo)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	w.Header().Set("Content-Type", "image/jpeg")
+	w.Write(photo)
+}
+
+func getNewsPostAudio(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	database, err := db.DB()
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	var audio []byte
+	err = database.QueryRow("SELECT audio FROM news_posts WHERE id = $1 AND archived = false AND completed = true", id).Scan(&audio)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	w.Header().Set("Content-Type", "audio/mpeg")
+	w.Write(audio)
+}
+
+func getNewsPostCoverImage(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	database, err := db.DB()
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	var CoverImage []byte
+	err = database.QueryRow("SELECT cover_image FROM news_posts WHERE id = $1 AND archived = false AND completed = true", id).Scan(&CoverImage)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	w.Header().Set("Content-Type", "image/jpeg")
+	w.Write(CoverImage)
 }

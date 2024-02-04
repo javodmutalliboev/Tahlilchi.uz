@@ -527,7 +527,7 @@ func getENewspaperList(w http.ResponseWriter, r *http.Request) {
 	}
 	defer database.Close()
 
-	rows, err := database.Query("SELECT * FROM e_newspapers ORDER BY id DESC LIMIT $1 OFFSET $2", limit, start)
+	rows, err := database.Query("SELECT id, title_latin, title_cyrillic, created_at, updated_at, archived, completed FROM e_newspapers ORDER BY id DESC LIMIT $1 OFFSET $2", limit, start)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -538,7 +538,7 @@ func getENewspaperList(w http.ResponseWriter, r *http.Request) {
 	var eNewspapers []ENewspaper
 	for rows.Next() {
 		var eNewspaper ENewspaper
-		err := rows.Scan(&eNewspaper.ID, &eNewspaper.TitleLatin, &eNewspaper.TitleCyrillic, &eNewspaper.FileLatin, &eNewspaper.FileCyrillic, &eNewspaper.CoverImage, &eNewspaper.CreatedAt, &eNewspaper.UpdatedAt, &eNewspaper.Archived)
+		err := rows.Scan(&eNewspaper.ID, &eNewspaper.TitleLatin, &eNewspaper.TitleCyrillic, &eNewspaper.CreatedAt, &eNewspaper.UpdatedAt, &eNewspaper.Archived, &eNewspaper.Completed)
 		if err != nil {
 			log.Printf("%v: error: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -554,10 +554,57 @@ type ENewspaper struct {
 	ID            int    `json:"id"`
 	TitleLatin    string `json:"title_latin"`
 	TitleCyrillic string `json:"title_cyrillic"`
-	FileLatin     []byte `json:"file_latin"`
-	FileCyrillic  []byte `json:"file_cyrillic"`
-	CoverImage    []byte `json:"cover_image"`
 	CreatedAt     string `json:"created_at"`
 	UpdatedAt     string `json:"updated_at"`
 	Archived      bool   `json:"archived"`
+	Completed     bool   `json:"completed"`
+}
+
+// eNewspaperCompleted is a handler to make e-newspaper completed field true/false
+func eNewspaperCompleted(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	exists, err := eNewspaperExists(id)
+	if err != nil {
+		log.Printf("%v: eNewspaperExists(id) error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if !*exists {
+		log.Printf("%v: eNewspaperExists(id): %v", r.URL, *exists)
+		response.Res(w, "error", http.StatusBadRequest, "Cannot update completed field of non existent e-newspaper")
+		return
+	}
+
+	archived, err := eNewspaperIsArchived(id)
+	if err != nil {
+		log.Printf("%v: eNewspaperIsArchived(id) error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if *archived {
+		log.Printf("%v: eNewspaperIsArchived(id): %v", r.URL, *archived)
+		response.Res(w, "error", http.StatusBadRequest, "Cannot update completed field of archived e-newspaper")
+		return
+	}
+
+	db, err := db.DB()
+	if err != nil {
+		log.Printf("%v: db error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer db.Close()
+
+	_, err = db.Exec("UPDATE e_newspapers SET completed = NOT completed WHERE id = $1", id)
+	if err != nil {
+		log.Printf("%v: db error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	response.Res(w, "success", http.StatusOK, "completed field updated")
 }

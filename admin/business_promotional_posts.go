@@ -695,7 +695,7 @@ func getBusinessPromotionalPosts(w http.ResponseWriter, r *http.Request) {
 	}
 	defer database.Close()
 
-	rows, err := database.Query("SELECT * FROM business_promotional_posts ORDER BY id DESC LIMIT $1 OFFSET $2", limit, start)
+	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, videos, expiration, created_at, updated_at, archived, partner, completed FROM business_promotional_posts ORDER BY id DESC LIMIT $1 OFFSET $2", limit, start)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -706,7 +706,7 @@ func getBusinessPromotionalPosts(w http.ResponseWriter, r *http.Request) {
 	var bpPosts []bpPost
 	for rows.Next() {
 		var bpp bpPost
-		err := rows.Scan(&bpp.ID, &bpp.TitleLatin, &bpp.DescriptionLatin, &bpp.TitleCyrillic, &bpp.DescriptionCyrillic, pq.Array(&bpp.Videos), &bpp.CoverImage, &bpp.Expiration, &bpp.CreatedAt, &bpp.UpdatedAt, &bpp.Archived, &bpp.Partner)
+		err := rows.Scan(&bpp.ID, &bpp.TitleLatin, &bpp.DescriptionLatin, &bpp.TitleCyrillic, &bpp.DescriptionCyrillic, pq.Array(&bpp.Videos), &bpp.Expiration, &bpp.CreatedAt, &bpp.UpdatedAt, &bpp.Archived, &bpp.Partner, &bpp.Completed)
 		if err != nil {
 			log.Printf("%v: error: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -725,10 +725,59 @@ type bpPost struct {
 	TitleCyrillic       string   `json:"title_cyrillic"`
 	DescriptionCyrillic string   `json:"description_cyrillic"`
 	Videos              []string `json:"videos"`
-	CoverImage          []byte   `json:"cover_image"`
 	Expiration          string   `json:"expiration"`
 	CreatedAt           string   `json:"created_at"`
 	UpdatedAt           string   `json:"updated_at"`
 	Archived            bool     `json:"archived"`
 	Partner             string   `json:"partner"`
+	Completed           bool     `json:"completed"`
+}
+
+// businessPromotionalPostCompleted is a handler to make business promotional post completed field true/false
+func businessPromotionalPostCompleted(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	exists, err := bpPostExists(id)
+	if err != nil {
+		log.Printf("%v: businessPromotionalPostCompleted bpPostExists(id): %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if !*exists {
+		log.Printf("%v: businessPromotionalPostCompleted bpPostExists(id): %v", r.URL, *exists)
+		response.Res(w, "error", http.StatusBadRequest, "Cannot update completed field of non existent business promotional post")
+		return
+	}
+
+	archived, err := bpPostIsArchived(id)
+	if err != nil {
+		log.Printf("%v: businessPromotionalPostCompleted bpPostIsArchived(id): %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if *archived {
+		log.Printf("%v: businessPromotionalPostCompleted bpPostIsArchived(id): %v", r.URL, *archived)
+		response.Res(w, "error", http.StatusBadRequest, "Cannot update completed field of archived business promotional post")
+		return
+	}
+
+	db, err := db.DB()
+	if err != nil {
+		log.Printf("%v: businessPromotionalPostCompleted db connection error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer db.Close()
+
+	_, err = db.Exec("UPDATE business_promotional_posts SET completed = NOT completed WHERE id = $1", id)
+	if err != nil {
+		log.Printf("%v: businessPromotionalPostCompleted db execution error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	response.Res(w, "success", http.StatusOK, "completed field updated")
 }
