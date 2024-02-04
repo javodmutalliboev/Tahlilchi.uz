@@ -38,7 +38,7 @@ func getENewspaperList(w http.ResponseWriter, r *http.Request) {
 	}
 	defer database.Close()
 
-	rows, err := database.Query("SELECT * FROM e_newspapers WHERE archived = false AND completed = true ORDER BY id DESC LIMIT $1 OFFSET $2", limit, start)
+	rows, err := database.Query("SELECT id, title_latin, title_cyrillic FROM e_newspapers WHERE archived = false AND completed = true ORDER BY id DESC LIMIT $1 OFFSET $2", limit, start)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -49,7 +49,7 @@ func getENewspaperList(w http.ResponseWriter, r *http.Request) {
 	var eNewspapers []ENewspaper
 	for rows.Next() {
 		var eNewspaper ENewspaper
-		err := rows.Scan(&eNewspaper.ID, &eNewspaper.TitleLatin, &eNewspaper.TitleCyrillic, &eNewspaper.CoverImage)
+		err := rows.Scan(&eNewspaper.ID, &eNewspaper.TitleLatin, &eNewspaper.TitleCyrillic)
 		if err != nil {
 			log.Printf("%v: error: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -65,7 +65,6 @@ type ENewspaper struct {
 	ID            int    `json:"id"`
 	TitleLatin    string `json:"title_latin"`
 	TitleCyrillic string `json:"title_cyrillic"`
-	CoverImage    []byte `json:"cover_image"`
 }
 
 func eNewspaperExists(id string) (*bool, error) {
@@ -85,7 +84,16 @@ func eNewspaperExists(id string) (*bool, error) {
 	return &exists, nil
 }
 
-func getENewspaperByID(w http.ResponseWriter, r *http.Request) {
+type ENewspaperByID struct {
+	ID            int    `json:"id"`
+	TitleLatin    string `json:"title_latin"`
+	TitleCyrillic string `json:"title_cyrillic"`
+	FileLatin     []byte `json:"file_latin"`
+	FileCyrillic  []byte `json:"file_cyrillic"`
+}
+
+// getENewspaperFile is a handler function that by id and alphabet returns file_latin or file_cyrillic as pdf with the name of title_latin or tile_cyrillic
+func getENewspaperFile(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	idStr := vars["id"]
@@ -119,7 +127,7 @@ func getENewspaperByID(w http.ResponseWriter, r *http.Request) {
 
 	var eNewspaper ENewspaperByID
 	if alphabet == "latin" {
-		err = database.QueryRow("SELECT * FROM e_newspapers WHERE id = $1 AND archived = FALSE AND completed = TRUE", idStr).Scan(&eNewspaper.ID, &eNewspaper.TitleLatin, &eNewspaper.FileLatin)
+		err = database.QueryRow("SELECT id, title_latin, file_latin FROM e_newspapers WHERE id = $1 AND archived = FALSE AND completed = TRUE", idStr).Scan(&eNewspaper.ID, &eNewspaper.TitleLatin, &eNewspaper.FileLatin)
 		if err != nil {
 			log.Printf("%v: error: %v", r.URL, err)
 			response.Res(w, "error", http.StatusBadRequest, err.Error())
@@ -128,7 +136,7 @@ func getENewspaperByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if alphabet == "cyrillic" {
-		err = database.QueryRow("SELECT * FROM e_newspapers WHERE id = $1 AND archived = FALSE AND completed = TRUE", idStr).Scan(&eNewspaper.ID, &eNewspaper.TitleCyrillic, &eNewspaper.FileCyrillic)
+		err = database.QueryRow("SELECT id, title_cyrillic, file_cyrillic FROM e_newspapers WHERE id = $1 AND archived = FALSE AND completed = TRUE", idStr).Scan(&eNewspaper.ID, &eNewspaper.TitleCyrillic, &eNewspaper.FileCyrillic)
 		if err != nil {
 			log.Printf("%v: error: %v", r.URL, err)
 			response.Res(w, "error", http.StatusBadRequest, err.Error())
@@ -136,13 +144,19 @@ func getENewspaperByID(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	response.Res(w, "success", http.StatusOK, eNewspaper)
-}
+	var file []byte
+	var fileName string
+	if alphabet == "latin" {
+		file = eNewspaper.FileLatin
+		fileName = eNewspaper.TitleLatin
+	}
 
-type ENewspaperByID struct {
-	ID            int    `json:"id"`
-	TitleLatin    string `json:"title_latin"`
-	TitleCyrillic string `json:"title_cyrillic"`
-	FileLatin     []byte `json:"file_latin"`
-	FileCyrillic  []byte `json:"file_cyrillic"`
+	if alphabet == "cyrillic" {
+		file = eNewspaper.FileCyrillic
+		fileName = eNewspaper.TitleCyrillic
+	}
+
+	w.Header().Set("Content-Disposition", "attachment; filename="+fileName+".pdf")
+	w.Header().Set("Content-Type", "application/pdf")
+	w.Write(file)
 }

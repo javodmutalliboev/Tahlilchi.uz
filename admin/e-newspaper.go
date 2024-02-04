@@ -608,3 +608,60 @@ func eNewspaperCompleted(w http.ResponseWriter, r *http.Request) {
 
 	response.Res(w, "success", http.StatusOK, "completed field updated")
 }
+
+// getENewspaperFile is a handler to get e-newspaper pdf latin or cyrillic file by id
+func getENewspaperFile(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+	alphabet := vars["alphabet"]
+
+	if alphabet != "latin" && alphabet != "cyrillic" {
+		response.Res(w, "error", http.StatusBadRequest, "invalid alphabet value")
+		return
+	}
+
+	exists, err := eNewspaperExists(id)
+	if err != nil {
+		log.Printf("%v: eNewspaperExists(id) error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if !*exists {
+		log.Printf("%v: eNewspaperExists(id): %v", r.URL, *exists)
+		response.Res(w, "error", http.StatusNotFound, "e-newspaper not found")
+		return
+	}
+
+	db, err := db.DB()
+	if err != nil {
+		log.Printf("%v: db error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer db.Close()
+
+	var file []byte
+	if alphabet == "latin" {
+		err = db.QueryRow("SELECT file_latin FROM e_newspapers WHERE id = $1", id).Scan(&file)
+		if err != nil {
+			log.Printf("%v: db error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusBadRequest, err.Error())
+			return
+		}
+	}
+
+	if alphabet == "cyrillic" {
+		err = db.QueryRow("SELECT file_cyrillic FROM e_newspapers WHERE id = $1", id).Scan(&file)
+		if err != nil {
+			log.Printf("%v: db error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusBadRequest, err.Error())
+			return
+		}
+	}
+
+	w.Header().Set("Content-Disposition", "attachment; filename=e-newspaper.pdf")
+	w.Header().Set("Content-Type", "application/pdf")
+	w.Header().Set("Content-Length", strconv.Itoa(len(file)))
+	w.Write(file)
+}
