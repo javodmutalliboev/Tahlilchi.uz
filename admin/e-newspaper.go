@@ -450,6 +450,26 @@ type ENewspaperCount struct {
 	Count  int    `json:"count"`
 }
 
+func getENewspaperCountAll(w http.ResponseWriter, r *http.Request) {
+	database, err := db.DB()
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	var count int
+	err = database.QueryRow("SELECT COUNT(*) FROM e_newspapers").Scan(&count)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	response.Res(w, "success", http.StatusOK, ENewspaperCount{Period: "all", Count: count})
+}
+
 func getENewspaperCount(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	period := vars["period"]

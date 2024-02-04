@@ -1014,6 +1014,27 @@ type NewsPostCount struct {
 	Count  int    `json:"count"`
 }
 
+// get count of all news posts
+func getNewsPostCountAll(w http.ResponseWriter, r *http.Request) {
+	database, err := db.DB()
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	var count int
+	err = database.QueryRow("SELECT COUNT(*) FROM news_posts").Scan(&count)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	response.Res(w, "success", http.StatusOK, NewsPostCount{Period: "all", Count: count})
+}
+
 func getNewsPostCount(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	period := vars["period"]

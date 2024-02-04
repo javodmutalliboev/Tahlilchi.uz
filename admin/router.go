@@ -29,6 +29,7 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	newsPostRouter.HandleFunc("/delete/{id}", middleware.Chain(deleteNewsPost, authPackage.AdminAuth())).Methods("DELETE")
 	newsPostRouter.HandleFunc("/archive/{id}", middleware.Chain(archiveNewsPost, authPackage.AdminAuth())).Methods("PATCH")
 	newsPostRouter.HandleFunc("/count/{period}", middleware.Chain(getNewsPostCount, authPackage.AdminAuth())).Methods("GET")
+	newsPostRouter.HandleFunc("/count", middleware.Chain(getNewsPostCountAll, authPackage.AdminAuth())).Methods("GET")
 	newsPostRouter.HandleFunc("/list", middleware.Chain(getNewsPosts, authPackage.AdminAuth())).Methods("GET")
 	newsPostRouter.HandleFunc("/unarchive/{id}", middleware.Chain(unArchiveNewsPost, authPackage.AdminAuth())).Methods("PATCH")
 	newsPostRouter.HandleFunc("/{id}/photo", middleware.Chain(shared.GetNewsPostPhoto, authPackage.AdminAuth())).Methods("GET")
@@ -43,6 +44,7 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	articleRouter.HandleFunc("/delete/{id}", middleware.Chain(deleteArticle, authPackage.AdminAuth())).Methods("DELETE")
 	articleRouter.HandleFunc("/archive/{id}", middleware.Chain(archiveArticle, authPackage.AdminAuth())).Methods("PATCH")
 	articleRouter.HandleFunc("/count/{period}", middleware.Chain(getArticleCount, authPackage.AdminAuth())).Methods("GET")
+	articleRouter.HandleFunc("/count", middleware.Chain(getArticleCountAll, authPackage.AdminAuth())).Methods("GET")
 	articleRouter.HandleFunc("/list", middleware.Chain(getArticles, authPackage.AdminAuth())).Methods("GET")
 	articleRouter.HandleFunc("/unarchive/{id}", middleware.Chain(unArchiveArticle, authPackage.AdminAuth())).Methods("PATCH")
 
@@ -63,6 +65,7 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	eNewspaperRouter.HandleFunc("/delete/{id}", middleware.Chain(deleteENewspaper, authPackage.AdminAuth())).Methods("DELETE")
 	eNewspaperRouter.HandleFunc("/archive/{id}", middleware.Chain(archiveENewspaper, authPackage.AdminAuth())).Methods("PATCH")
 	eNewspaperRouter.HandleFunc("/count/{period}", middleware.Chain(getENewspaperCount, authPackage.AdminAuth())).Methods("GET")
+	eNewspaperRouter.HandleFunc("/count", middleware.Chain(getENewspaperCountAll, authPackage.AdminAuth())).Methods("GET")
 	eNewspaperRouter.HandleFunc("/list", middleware.Chain(getENewspaperList, authPackage.AdminAuth())).Methods("GET")
 	eNewspaperRouter.HandleFunc("/unarchive/{id}", middleware.Chain(unArchiveENewspaper, authPackage.AdminAuth())).Methods("PATCH")
 
@@ -81,6 +84,7 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	contactAppealRouter.HandleFunc("/{id}/picture", middleware.Chain(appealPicture, authPackage.AdminAuth())).Methods("GET")
 	contactAppealRouter.HandleFunc("/{id}/video", middleware.Chain(appealVideo, authPackage.AdminAuth())).Methods("GET")
 	contactAppealRouter.HandleFunc("/count/{period}", middleware.Chain(getAppealCount, authPackage.AdminAuth())).Methods("GET")
+	contactAppealRouter.HandleFunc("/count", middleware.Chain(getAppealCountAll, authPackage.AdminAuth())).Methods("GET")
 
 	contactRouter.HandleFunc("", middleware.Chain(createAdminContact, authPackage.AdminAuth())).Methods("POST")
 	contactRouter.HandleFunc("", middleware.Chain(getAdminContact, authPackage.AdminAuth())).Methods("GET")

@@ -402,6 +402,27 @@ type AppealCount struct {
 	Count  int    `json:"count"`
 }
 
+// getAppealCountAll returns the count of appeals for all time
+func getAppealCountAll(w http.ResponseWriter, r *http.Request) {
+	database, err := db.DB()
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	var count int
+	err = database.QueryRow("SELECT COUNT(*) FROM appeals").Scan(&count)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	response.Res(w, "success", http.StatusOK, AppealCount{Period: "all", Count: count})
+}
+
 func getAppealCount(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	period := vars["period"]
