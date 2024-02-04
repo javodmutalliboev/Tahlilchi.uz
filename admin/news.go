@@ -882,9 +882,9 @@ func deleteNewsPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !*archived {
+	if *archived {
 		log.Printf("%v: delete news post isArchived(id): %v", r.URL, *archived)
-		response.Res(w, "error", http.StatusBadRequest, "Cannot delete not archived news post")
+		response.Res(w, "error", http.StatusBadRequest, "Cannot delete archived news post")
 		return
 	}
 

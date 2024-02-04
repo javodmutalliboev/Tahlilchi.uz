@@ -469,9 +469,9 @@ func deleteBPPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !*archived {
+	if *archived {
 		log.Printf("%v: delete business promotional post bpPostIsArchived(id): %v", r.URL, *archived)
-		response.Res(w, "error", http.StatusBadRequest, "Cannot delete not archived business promotional post")
+		response.Res(w, "error", http.StatusBadRequest, "Cannot delete archived business promotional post")
 		return
 	}
 

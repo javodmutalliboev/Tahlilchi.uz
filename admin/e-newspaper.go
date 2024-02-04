@@ -318,9 +318,9 @@ func deleteENewspaper(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !*archived {
+	if *archived {
 		log.Printf("%v: delete e-newspaper eNewspaperIsArchived(id): %v", r.URL, *archived)
-		response.Res(w, "error", http.StatusBadRequest, "Cannot delete not archived e-newspaper")
+		response.Res(w, "error", http.StatusBadRequest, "Cannot delete archived e-newspaper")
 		return
 	}
 

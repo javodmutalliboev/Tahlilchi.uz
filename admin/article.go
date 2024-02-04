@@ -527,9 +527,9 @@ func deleteArticle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !*archived {
+	if *archived {
 		log.Printf("%v: delete article articleIsArchived(id): %v", r.URL, *archived)
-		response.Res(w, "error", http.StatusBadRequest, "Cannot delete not archived article")
+		response.Res(w, "error", http.StatusBadRequest, "Cannot delete archived article")
 		return
 	}
 
