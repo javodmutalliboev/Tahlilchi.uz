@@ -6,6 +6,7 @@ import (
 
 	"Tahlilchi.uz/db"
 	"Tahlilchi.uz/response"
+	"github.com/gorilla/mux"
 	"github.com/lib/pq"
 )
 
@@ -286,6 +287,9 @@ func searchPhotoGallery(w http.ResponseWriter, r *http.Request) {
 // It searches the photo_gallery_photos table for the given query.
 // search columns: file_name.
 func searchPhotoGalleryPhotos(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
 	search := r.URL.Query().Get("search")
 	if search == "" {
 		response.Res(w, "error", http.StatusBadRequest, "search query is missing")
@@ -300,7 +304,7 @@ func searchPhotoGalleryPhotos(w http.ResponseWriter, r *http.Request) {
 	}
 	defer database.Close()
 
-	rows, err := database.Query("SELECT id, photo_gallery, file_name, created_at from photo_gallery_photos WHERE file_name ILIKE $1", "%"+search+"%")
+	rows, err := database.Query("SELECT id, photo_gallery, file_name, created_at from photo_gallery_photos WHERE file_name ILIKE $1 AND photo_gallery = $2", "%"+search+"%", id)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")

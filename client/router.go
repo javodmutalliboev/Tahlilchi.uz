@@ -51,6 +51,10 @@ func ClientRouter(r *mux.Router) {
 	searchRouter.HandleFunc("/article", searchArticle).Methods("GET")
 	// route to search in e-newspapers
 	searchRouter.HandleFunc("/e-newspaper", searchENewspaper).Methods("GET")
-	//route to search news_posts
+	// route to search news_posts
 	searchRouter.HandleFunc("/news", searchNews).Methods("GET")
+	// route to search photo_gallery
+	searchRouter.HandleFunc("/photo-gallery", searchPhotoGallery).Methods("GET")
+	// route to search photo_gallery_photos
+	searchRouter.HandleFunc("/photo-gallery/{id}/photos", searchPhotoGalleryPhotos).Methods("GET")
 }

@@ -46,9 +46,9 @@ func getPhotoGalleryList(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
-	var photoGalleryList []PhotoGalleryList
+	var photoGalleryList []PhotoGallery
 	for rows.Next() {
-		var photoGallery PhotoGalleryList
+		var photoGallery PhotoGallery
 		if err := rows.Scan(&photoGallery.ID, &photoGallery.TitleLatin, &photoGallery.TitleCyrillic); err != nil {
 			log.Printf("%v: error: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -60,7 +60,7 @@ func getPhotoGalleryList(w http.ResponseWriter, r *http.Request) {
 	response.Res(w, "success", http.StatusOK, photoGalleryList)
 }
 
-type PhotoGalleryList struct {
+type PhotoGallery struct {
 	ID            int    `json:"id"`
 	TitleLatin    string `json:"title_latin"`
 	TitleCyrillic string `json:"title_cyrillic"`
@@ -127,7 +127,7 @@ func getPhotoGalleryPhotos(w http.ResponseWriter, r *http.Request) {
 	}
 	defer database.Close()
 
-	rows, err := database.Query("SELECT * FROM photo_gallery_photos WHERE photo_gallery = $1 ORDER BY id DESC LIMIT $2 OFFSET $3", id, limit, start)
+	rows, err := database.Query("SELECT id, file_name FROM photo_gallery_photos WHERE photo_gallery = $1 ORDER BY id DESC LIMIT $2 OFFSET $3", id, limit, start)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -138,7 +138,7 @@ func getPhotoGalleryPhotos(w http.ResponseWriter, r *http.Request) {
 	var photoGalleryPhotos []PhotoGalleryPhoto
 	for rows.Next() {
 		var photoGalleryPhoto PhotoGalleryPhoto
-		if err := rows.Scan(&photoGalleryPhoto.ID, &photoGalleryPhoto.FileName, &photoGalleryPhoto.File); err != nil {
+		if err := rows.Scan(&photoGalleryPhoto.ID, &photoGalleryPhoto.FileName); err != nil {
 			log.Printf("%v: error: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
 			return
@@ -152,5 +152,4 @@ func getPhotoGalleryPhotos(w http.ResponseWriter, r *http.Request) {
 type PhotoGalleryPhoto struct {
 	ID       int    `json:"id"`
 	FileName string `json:"file_name"`
-	File     []byte `json:"file"`
 }

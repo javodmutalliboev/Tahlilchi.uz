@@ -113,7 +113,7 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	// route to search in photo_gallery table
 	searchRouter.HandleFunc("/photo-gallery", middleware.Chain(searchPhotoGallery, authPackage.AdminAuth())).Methods("GET")
 	// route to search in photo_gallery_photos table
-	searchRouter.HandleFunc("/photo-gallery/photos", middleware.Chain(searchPhotoGalleryPhotos, authPackage.AdminAuth())).Methods("GET")
+	searchRouter.HandleFunc("/photo-gallery/{id}/photos", middleware.Chain(searchPhotoGalleryPhotos, authPackage.AdminAuth())).Methods("GET")
 
 	return adminRouter
 }
