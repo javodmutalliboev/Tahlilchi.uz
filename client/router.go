@@ -49,4 +49,6 @@ func ClientRouter(r *mux.Router) {
 
 	// route to search in articles
 	searchRouter.HandleFunc("/article", searchArticle).Methods("GET")
+	// route to search in e-newspapers
+	searchRouter.HandleFunc("/e-newspaper", searchENewspaper).Methods("GET")
 }

@@ -50,3 +50,46 @@ func searchArticle(w http.ResponseWriter, r *http.Request) {
 
 	response.Res(w, "success", http.StatusOK, articles)
 }
+
+// searchENewspaper is a handler function for the /search/e-newspaper route.
+// It is used to search for e-newspapers.
+// search columns: title_latin, title_cyrillic.
+// where archived is false, completed is true.
+func searchENewspaper(w http.ResponseWriter, r *http.Request) {
+	search := r.URL.Query().Get("search")
+	if search == "" {
+		log.Printf("%v: search query is empty", r.URL)
+		response.Res(w, "error", http.StatusBadRequest, "search query is empty")
+		return
+	}
+
+	database, err := db.DB()
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	rows, err := database.Query("SELECT id, title_latin, title_cyrillic FROM e_newspapers WHERE (title_latin ILIKE '%' || $1 || '%' OR title_cyrillic ILIKE '%' || $1 || '%') AND archived = false AND completed = true", search)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer rows.Close()
+
+	var eNewspapers []ENewspaper
+	for rows.Next() {
+		var eNewspaper ENewspaper
+		err := rows.Scan(&eNewspaper.ID, &eNewspaper.TitleLatin, &eNewspaper.TitleCyrillic)
+		if err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+		eNewspapers = append(eNewspapers, eNewspaper)
+	}
+
+	response.Res(w, "success", http.StatusOK, eNewspapers)
+}
