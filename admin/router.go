@@ -100,7 +100,10 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	contactRouter.HandleFunc("/{id}", middleware.Chain(updateAdminContact, authPackage.AdminAuth())).Methods("PATCH")
 
 	searchRouter := adminRouter.PathPrefix("/search").Subrouter()
-	searchRouter.HandleFunc("", search).Methods("GET")
+	// route to search in appeals table
+	searchRouter.HandleFunc("/appeal", middleware.Chain(searchAppeal, authPackage.AdminAuth())).Methods("GET")
+	// route to search in articles table
+	searchRouter.HandleFunc("/article", middleware.Chain(searchArticle, authPackage.AdminAuth())).Methods("GET")
 
 	return adminRouter
 }
