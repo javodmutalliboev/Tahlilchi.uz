@@ -93,3 +93,47 @@ func searchENewspaper(w http.ResponseWriter, r *http.Request) {
 
 	response.Res(w, "success", http.StatusOK, eNewspapers)
 }
+
+// searchNews is a handler function for the /search/news route.
+// It is used to search for news.
+// search columns: title_latin, title_cyrillic, description_latin, description_cyrillic, tags.
+// tags is text[].
+// where archived is false, completed is true.
+func searchNews(w http.ResponseWriter, r *http.Request) {
+	search := r.URL.Query().Get("search")
+	if search == "" {
+		log.Printf("%v: search query is empty", r.URL)
+		response.Res(w, "error", http.StatusBadRequest, "search query is empty")
+		return
+	}
+
+	database, err := db.DB()
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, video, tags FROM news_posts WHERE (title_latin ILIKE '%' || $1 || '%' OR title_cyrillic ILIKE '%' || $1 || '%' OR description_latin ILIKE '%' || $1 || '%' OR description_cyrillic ILIKE '%' || $1 || '%' OR tags @> ARRAY[$1]) AND archived = false AND completed = true", search)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer rows.Close()
+
+	var news []NewsPost
+	for rows.Next() {
+		var n NewsPost
+		err := rows.Scan(&n.ID, &n.TitleLatin, &n.DescriptionLatin, &n.TitleCyrillic, &n.DescriptionCyrillic, &n.Video, &n.Tags)
+		if err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+		news = append(news, n)
+	}
+
+	response.Res(w, "success", http.StatusOK, news)
+}

@@ -12,13 +12,13 @@ import (
 )
 
 type NewsPost struct {
-	ID                  int64    `json:"id"`
-	TitleLatin          string   `json:"title_latin"`
-	DescriptionLatin    string   `json:"description_latin"`
-	TitleCyrillic       string   `json:"title_cyrillic"`
-	DescriptionCyrillic string   `json:"description_cyrillic"`
-	Video               string   `json:"video"`
-	Tags                []string `json:"tags"`
+	ID                  int64          `json:"id"`
+	TitleLatin          string         `json:"title_latin"`
+	DescriptionLatin    string         `json:"description_latin"`
+	TitleCyrillic       string         `json:"title_cyrillic"`
+	DescriptionCyrillic string         `json:"description_cyrillic"`
+	Video               string         `json:"video"`
+	Tags                pq.StringArray `json:"tags"`
 }
 
 func getAllNewsPosts(w http.ResponseWriter, r *http.Request) {
@@ -59,7 +59,7 @@ func getAllNewsPosts(w http.ResponseWriter, r *http.Request) {
 	var posts []NewsPost
 	for rows.Next() {
 		var post NewsPost
-		err := rows.Scan(&post.ID, &post.TitleLatin, &post.DescriptionLatin, &post.TitleCyrillic, &post.DescriptionCyrillic, &post.Video, pq.Array(&post.Tags))
+		err := rows.Scan(&post.ID, &post.TitleLatin, &post.DescriptionLatin, &post.TitleCyrillic, &post.DescriptionCyrillic, &post.Video, &post.Tags)
 		if err != nil {
 			log.Printf("%v: error: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -117,7 +117,7 @@ func getNewsByCategory(w http.ResponseWriter, r *http.Request) {
 	var posts []NewsPost
 	for rows.Next() {
 		var post NewsPost
-		err := rows.Scan(&post.ID, &post.TitleLatin, &post.DescriptionLatin, &post.TitleCyrillic, &post.DescriptionCyrillic, &post.Video, pq.Array(&post.Tags))
+		err := rows.Scan(&post.ID, &post.TitleLatin, &post.DescriptionLatin, &post.TitleCyrillic, &post.DescriptionCyrillic, &post.Video, &post.Tags)
 		if err != nil {
 			log.Printf("%v: error: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -175,7 +175,7 @@ func getNewsBySubCategory(w http.ResponseWriter, r *http.Request) {
 	var posts []NewsPost
 	for rows.Next() {
 		var post NewsPost
-		err := rows.Scan(&post.ID, &post.TitleLatin, &post.DescriptionLatin, &post.TitleCyrillic, &post.DescriptionCyrillic, &post.Video, pq.Array(&post.Tags))
+		err := rows.Scan(&post.ID, &post.TitleLatin, &post.DescriptionLatin, &post.TitleCyrillic, &post.DescriptionCyrillic, &post.Video, &post.Tags)
 		if err != nil {
 			log.Printf("%v: error: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -233,7 +233,7 @@ func getNewsByRegion(w http.ResponseWriter, r *http.Request) {
 	var posts []NewsPost
 	for rows.Next() {
 		var post NewsPost
-		err := rows.Scan(&post.ID, &post.TitleLatin, &post.DescriptionLatin, &post.TitleCyrillic, &post.DescriptionCyrillic, &post.Video, pq.Array(&post.Tags))
+		err := rows.Scan(&post.ID, &post.TitleLatin, &post.DescriptionLatin, &post.TitleCyrillic, &post.DescriptionCyrillic, &post.Video, &post.Tags)
 		if err != nil {
 			log.Printf("%v: error: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -288,7 +288,7 @@ func getTopNews(w http.ResponseWriter, r *http.Request) {
 	var posts []NewsPost
 	for rows.Next() {
 		var post NewsPost
-		err := rows.Scan(&post.ID, &post.TitleLatin, &post.DescriptionLatin, &post.TitleCyrillic, &post.DescriptionCyrillic, &post.Video, pq.Array(&post.Tags))
+		err := rows.Scan(&post.ID, &post.TitleLatin, &post.DescriptionLatin, &post.TitleCyrillic, &post.DescriptionCyrillic, &post.Video, &post.Tags)
 		if err != nil {
 			log.Printf("%v: error: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -343,7 +343,7 @@ func getLatestNews(w http.ResponseWriter, r *http.Request) {
 	var posts []NewsPost
 	for rows.Next() {
 		var post NewsPost
-		err := rows.Scan(&post.ID, &post.TitleLatin, &post.DescriptionLatin, &post.TitleCyrillic, &post.DescriptionCyrillic, &post.Video, pq.Array(&post.Tags))
+		err := rows.Scan(&post.ID, &post.TitleLatin, &post.DescriptionLatin, &post.TitleCyrillic, &post.DescriptionCyrillic, &post.Video, &post.Tags)
 		if err != nil {
 			log.Printf("%v: error: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -401,7 +401,7 @@ func getRelatedNewsPosts(w http.ResponseWriter, r *http.Request) {
 	var posts []NewsPost
 	for rows.Next() {
 		var post NewsPost
-		err := rows.Scan(&post.ID, &post.TitleLatin, &post.DescriptionLatin, &post.TitleCyrillic, &post.DescriptionCyrillic, &post.Video, pq.Array(&post.Tags))
+		err := rows.Scan(&post.ID, &post.TitleLatin, &post.DescriptionLatin, &post.TitleCyrillic, &post.DescriptionCyrillic, &post.Video, &post.Tags)
 		if err != nil {
 			log.Printf("%v: error: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
