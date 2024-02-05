@@ -69,7 +69,7 @@ func searchArticle(w http.ResponseWriter, r *http.Request) {
 	}
 	defer database.Close()
 
-	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, tags FROM articles WHERE title_latin ILIKE $1 OR description_latin ILIKE $1 OR title_cyrillic ILIKE $1 OR description_cyrillic ILIKE $1 OR tags @> ARRAY[$2]", "%"+search+"%", search)
+	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, videos, tags, archived, created_at, updated_at, category, related, completed FROM articles WHERE title_latin ILIKE $1 OR description_latin ILIKE $1 OR title_cyrillic ILIKE $1 OR description_cyrillic ILIKE $1 OR tags @> ARRAY[$2]", "%"+search+"%", search)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -81,12 +81,14 @@ func searchArticle(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var article Article
 		var tags pq.StringArray
-		err := rows.Scan(&article.ID, &article.TitleLatin, &article.DescriptionLatin, &article.TitleCyrillic, &article.DescriptionCyrillic, &tags)
+		var videos pq.StringArray
+		err := rows.Scan(&article.ID, &article.TitleLatin, &article.DescriptionLatin, &article.TitleCyrillic, &article.DescriptionCyrillic, &videos, &tags, &article.Archived, &article.CreatedAt, &article.UpdatedAt, &article.Category, &article.Related, &article.Completed)
 		if err != nil {
 			log.Printf("%v: error: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
 			return
 		}
+		article.Videos = videos
 		article.Tags = tags
 		articles = append(articles, article)
 	}
