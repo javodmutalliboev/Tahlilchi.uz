@@ -155,3 +155,44 @@ type BusinessPromotionalPost struct {
 	Partner             string         `json:"partner"`
 	Completed           bool           `json:"completed"`
 }
+
+// searchENewspaper is the handler for the /admin/search/e-newspaper endpoint.
+// It searches the e_newspapers table for the given query.
+// search columns: title_latin, title_cyrillic.
+func searchENewspaper(w http.ResponseWriter, r *http.Request) {
+	search := r.URL.Query().Get("search")
+	if search == "" {
+		response.Res(w, "error", http.StatusBadRequest, "search query is missing")
+		return
+	}
+
+	database, err := db.DB()
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	rows, err := database.Query("SELECT id, title_latin, title_cyrillic, created_at, updated_at, archived, completed FROM e_newspapers WHERE title_latin ILIKE $1 OR title_cyrillic ILIKE $1", "%"+search+"%")
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer rows.Close()
+
+	var eNewspapers []ENewspaper
+	for rows.Next() {
+		var eNewspaper ENewspaper
+		err := rows.Scan(&eNewspaper.ID, &eNewspaper.TitleLatin, &eNewspaper.TitleCyrillic, &eNewspaper.CreatedAt, &eNewspaper.UpdatedAt, &eNewspaper.Archived, &eNewspaper.Completed)
+		if err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+		eNewspapers = append(eNewspapers, eNewspaper)
+	}
+
+	response.Res(w, "success", http.StatusOK, eNewspapers)
+}
