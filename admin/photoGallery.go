@@ -13,8 +13,11 @@ import (
 )
 
 type PhotoGallery struct {
-	TitleLatin    string
-	TitleCyrillic string
+	ID            int    `json:"id"`
+	TitleLatin    string `json:"title_latin"`
+	TitleCyrillic string `json:"title_cyrillic"`
+	CreatedAt     string `json:"created_at"`
+	UpdatedAt     string `json:"updated_at"`
 }
 
 func addPhotoGallery(w http.ResponseWriter, r *http.Request) {
@@ -249,7 +252,7 @@ func getPhotoGalleryPhotos(w http.ResponseWriter, r *http.Request) {
 	}
 	defer database.Close()
 
-	rows, err := database.Query("SELECT * FROM photo_gallery_photos WHERE photo_gallery = $1 ORDER BY id DESC LIMIT $2 OFFSET $3", id, limit, start)
+	rows, err := database.Query("SELECT id, photo_gallery, file_name, created_at FROM photo_gallery_photos WHERE photo_gallery = $1 ORDER BY id DESC LIMIT $2 OFFSET $3", id, limit, start)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -260,7 +263,7 @@ func getPhotoGalleryPhotos(w http.ResponseWriter, r *http.Request) {
 	var photoGalleryPhotos []PhotoGalleryPhoto
 	for rows.Next() {
 		var photoGalleryPhoto PhotoGalleryPhoto
-		if err := rows.Scan(&photoGalleryPhoto.ID, &photoGalleryPhoto.PhotoGallery, &photoGalleryPhoto.FileName, &photoGalleryPhoto.File, &photoGalleryPhoto.CreatedAt); err != nil {
+		if err := rows.Scan(&photoGalleryPhoto.ID, &photoGalleryPhoto.PhotoGallery, &photoGalleryPhoto.FileName, &photoGalleryPhoto.CreatedAt); err != nil {
 			log.Printf("%v: error: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
 			return
@@ -276,5 +279,4 @@ type PhotoGalleryPhoto struct {
 	PhotoGallery int    `json:"photo_gallery"`
 	FileName     string `json:"file_name"`
 	CreatedAt    string `json:"created_at"`
-	File         []byte `json:"file"`
 }
