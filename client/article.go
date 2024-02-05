@@ -51,7 +51,7 @@ func getArticleListByCategory(w http.ResponseWriter, r *http.Request) {
 	var articles []Article
 	for rows.Next() {
 		var article Article
-		err := rows.Scan(&article.ID, &article.TitleLatin, &article.DescriptionLatin, &article.TitleCyrillic, &article.DescriptionCyrillic, pq.Array(&article.Photos), pq.Array(&article.Videos), &article.CoverImage, pq.Array(&article.Tags))
+		err := rows.Scan(&article.ID, &article.TitleLatin, &article.DescriptionLatin, &article.TitleCyrillic, &article.DescriptionCyrillic, &article.Videos, &article.Tags)
 		if err != nil {
 			log.Printf("%v: error: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -70,15 +70,13 @@ func getArticleListByCategory(w http.ResponseWriter, r *http.Request) {
 }
 
 type Article struct {
-	ID                  int      `json:"id"`
-	TitleLatin          string   `json:"title_latin"`
-	DescriptionLatin    string   `json:"description_latin"`
-	TitleCyrillic       string   `json:"title_cyrillic"`
-	DescriptionCyrillic string   `json:"description_cyrillic"`
-	Photos              [][]byte `json:"photos"`
-	Videos              []string `json:"videos"`
-	CoverImage          []byte   `json:"cover_image"`
-	Tags                []string `json:"tags"`
+	ID                  int            `json:"id"`
+	TitleLatin          string         `json:"title_latin"`
+	DescriptionLatin    string         `json:"description_latin"`
+	TitleCyrillic       string         `json:"title_cyrillic"`
+	DescriptionCyrillic string         `json:"description_cyrillic"`
+	Videos              pq.StringArray `json:"videos"`
+	Tags                pq.StringArray `json:"tags"`
 }
 
 func getArticleListByRelated(w http.ResponseWriter, r *http.Request) {
@@ -121,7 +119,7 @@ func getArticleListByRelated(w http.ResponseWriter, r *http.Request) {
 	var articles []Article
 	for rows.Next() {
 		var article Article
-		err := rows.Scan(&article.ID, &article.TitleLatin, &article.DescriptionLatin, &article.TitleCyrillic, &article.DescriptionCyrillic, pq.Array(&article.Photos), pq.Array(&article.Videos), &article.CoverImage, pq.Array(&article.Tags))
+		err := rows.Scan(&article.ID, &article.TitleLatin, &article.DescriptionLatin, &article.TitleCyrillic, &article.DescriptionCyrillic, &article.Videos, &article.Tags)
 		if err != nil {
 			log.Printf("%v: error: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -216,7 +214,7 @@ func getAllArticles(w http.ResponseWriter, r *http.Request) {
 	var articles []Article
 	for rows.Next() {
 		var article Article
-		err := rows.Scan(&article.ID, &article.TitleLatin, &article.DescriptionLatin, &article.TitleCyrillic, &article.DescriptionCyrillic, pq.Array(&article.Photos), pq.Array(&article.Videos), &article.CoverImage, pq.Array(&article.Tags))
+		err := rows.Scan(&article.ID, &article.TitleLatin, &article.DescriptionLatin, &article.TitleCyrillic, &article.DescriptionCyrillic, &article.Videos, &article.Tags)
 		if err != nil {
 			log.Printf("%v: error: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")

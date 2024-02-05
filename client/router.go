@@ -43,6 +43,10 @@ func ClientRouter(r *mux.Router) {
 
 	contactRouter := clientRouter.PathPrefix("/contact").Subrouter()
 	contactRouter.HandleFunc("", getAdminContact).Methods("GET")
-}
 
-// contact.go
+	// search router
+	searchRouter := clientRouter.PathPrefix("/search").Subrouter()
+
+	// route to search in articles
+	searchRouter.HandleFunc("/article", searchArticle).Methods("GET")
+}
