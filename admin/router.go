@@ -108,6 +108,8 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	searchRouter.HandleFunc("/business-promotional", middleware.Chain(searchBusinessPromotional, authPackage.AdminAuth())).Methods("GET")
 	// route to search in e_newspapers table
 	searchRouter.HandleFunc("/e-newspaper", middleware.Chain(searchENewspaper, authPackage.AdminAuth())).Methods("GET")
+	// route to search in news_posts table
+	searchRouter.HandleFunc("/news", middleware.Chain(searchNews, authPackage.AdminAuth())).Methods("GET")
 
 	return adminRouter
 }

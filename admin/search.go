@@ -196,3 +196,47 @@ func searchENewspaper(w http.ResponseWriter, r *http.Request) {
 
 	response.Res(w, "success", http.StatusOK, eNewspapers)
 }
+
+// searchNews is the handler for the /admin/search/news endpoint.
+// It searches the news_posts table for the given query.
+// search columns: title_latin, description_latin, title_cyrillic, description_cyrillic, tags.
+// tags is text[].
+func searchNews(w http.ResponseWriter, r *http.Request) {
+	search := r.URL.Query().Get("search")
+	if search == "" {
+		response.Res(w, "error", http.StatusBadRequest, "search query is missing")
+		return
+	}
+
+	database, err := db.DB()
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, video, tags, archived, created_at, updated_at, category, subcategory, region, top, latest, related, completed FROM news_posts WHERE title_latin ILIKE $1 OR description_latin ILIKE $1 OR title_cyrillic ILIKE $1 OR description_cyrillic ILIKE $1 OR tags @> ARRAY[$2]", "%"+search+"%", search)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer rows.Close()
+
+	var newsPosts []NewsPost
+	for rows.Next() {
+		var newsPost NewsPost
+		var tags pq.StringArray
+		err := rows.Scan(&newsPost.ID, &newsPost.TitleLatin, &newsPost.DescriptionLatin, &newsPost.TitleCyrillic, &newsPost.DescriptionCyrillic, &newsPost.Video, &tags, &newsPost.Archived, &newsPost.CreatedAt, &newsPost.UpdatedAt, &newsPost.Category, &newsPost.Subcategory, &newsPost.Region, &newsPost.Top, &newsPost.Latest, &newsPost.Related, &newsPost.Completed)
+		if err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+		newsPost.Tags = tags
+		newsPosts = append(newsPosts, newsPost)
+	}
+
+	response.Res(w, "success", http.StatusOK, newsPosts)
+}
