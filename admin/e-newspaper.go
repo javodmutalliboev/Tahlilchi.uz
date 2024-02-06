@@ -12,6 +12,181 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// e-newspaper category type
+type ENewspaperCategory struct {
+	ID            int    `json:"id"`
+	TitleLatin    string `json:"title_latin"`
+	TitleCyrillic string `json:"title_cyrillic"`
+}
+
+// addENewspaperCategory is a handler to add new e-newspaper category
+func addENewspaperCategory(w http.ResponseWriter, r *http.Request) {
+	var e ENewspaperCategory
+	err := r.ParseForm()
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusBadRequest, err.Error())
+		return
+	}
+
+	e.TitleLatin = r.FormValue("title_latin")
+	e.TitleCyrillic = r.FormValue("title_cyrillic")
+
+	if e.TitleLatin == "" || e.TitleCyrillic == "" {
+		log.Printf("%v: title_latin: %v; title_cyrillic: %v", r.URL, e.TitleLatin, e.TitleCyrillic)
+		response.Res(w, "error", http.StatusBadRequest, "Both title_latin and title_cyrillic are required")
+		return
+	}
+
+	database, err := db.DB()
+	if err != nil {
+		log.Printf("%v: db connection error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	_, err = database.Exec("INSERT INTO e_newspaper_category (title_latin, title_cyrillic) VALUES ($1, $2)", e.TitleLatin, e.TitleCyrillic)
+	if err != nil {
+		log.Printf("%v: db execution error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	response.Res(w, "success", http.StatusCreated, "e-newspaper category added")
+}
+
+// getENewspaperCategoryList is a handler to get e-newspaper category list
+func getENewspaperCategoryList(w http.ResponseWriter, r *http.Request) {
+	database, err := db.DB()
+	if err != nil {
+		log.Printf("%v: db connection error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	rows, err := database.Query("SELECT id, title_latin, title_cyrillic FROM e_newspaper_category")
+	if err != nil {
+		log.Printf("%v: db execution error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer rows.Close()
+
+	var eNewspaperCategories []ENewspaperCategory
+	for rows.Next() {
+		var e ENewspaperCategory
+		err := rows.Scan(&e.ID, &e.TitleLatin, &e.TitleCyrillic)
+		if err != nil {
+			log.Printf("%v: db execution error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+		eNewspaperCategories = append(eNewspaperCategories, e)
+	}
+
+	response.Res(w, "success", http.StatusOK, eNewspaperCategories)
+}
+
+// updateENewspaperCategory is a handler to update e-newspaper category
+func updateENewspaperCategory(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	// check e-newspaper category exists
+	var exists bool
+	database, err := db.DB()
+	if err != nil {
+		log.Printf("%v: db connection error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	err = database.QueryRow("SELECT EXISTS(SELECT 1 FROM e_newspaper_category WHERE id = $1)", id).Scan(&exists)
+	if err != nil {
+		log.Printf("%v: db execution error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if !exists {
+		response.Res(w, "error", http.StatusNotFound, "e-newspaper category not found")
+		return
+	}
+
+	var e ENewspaperCategory
+	err = r.ParseForm()
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusBadRequest, err.Error())
+		return
+	}
+
+	e.TitleLatin = r.FormValue("title_latin")
+	e.TitleCyrillic = r.FormValue("title_cyrillic")
+
+	if e.TitleLatin != "" {
+		// update title_latin column in database
+		_, err = database.Exec("UPDATE e_newspaper_category SET title_latin = $1 WHERE id = $2", e.TitleLatin, id)
+		if err != nil {
+			log.Printf("%v: db execution error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+	}
+
+	if e.TitleCyrillic != "" {
+		// update title_cyrillic column in database
+		_, err = database.Exec("UPDATE e_newspaper_category SET title_cyrillic = $1 WHERE id = $2", e.TitleCyrillic, id)
+		if err != nil {
+			log.Printf("%v: db execution error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+	}
+
+	response.Res(w, "success", http.StatusOK, "e-newspaper category updated")
+}
+
+// deleteENewspaperCategory is a handler to delete e-newspaper category
+func deleteENewspaperCategory(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	database, err := db.DB()
+	if err != nil {
+		log.Printf("%v: db connection error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	// check e-newspaper category exists
+	var exists bool
+	err = database.QueryRow("SELECT EXISTS(SELECT 1 FROM e_newspaper_category WHERE id = $1)", id).Scan(&exists)
+	if err != nil {
+		log.Printf("%v: db execution error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if !exists {
+		response.Res(w, "error", http.StatusNotFound, "e-newspaper category not found")
+		return
+	}
+
+	_, err = database.Exec("DELETE FROM e_newspaper_category WHERE id = $1", id)
+	if err != nil {
+		log.Printf("%v: db execution error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	response.Res(w, "success", http.StatusOK, "e-newspaper category deleted")
+}
+
 func addENewspaper(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseMultipartForm(20 << 20) // Max memory 20MB
 	if err != nil {

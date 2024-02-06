@@ -65,6 +65,14 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	businessPromotionalPostRouter.HandleFunc("/completed/{id}", middleware.Chain(businessPromotionalPostCompleted, authPackage.AdminAuth())).Methods("PATCH")
 
 	eNewspaperRouter := adminRouter.PathPrefix("/e-newspaper").Subrouter()
+	// route to add e-newspaper category
+	eNewspaperRouter.HandleFunc("/category", middleware.Chain(addENewspaperCategory, authPackage.AdminAuth())).Methods("POST")
+	// route to get e-newspaper category list
+	eNewspaperRouter.HandleFunc("/category/list", middleware.Chain(getENewspaperCategoryList, authPackage.AdminAuth())).Methods("GET")
+	// route to update e-newspaper category
+	eNewspaperRouter.HandleFunc("/category/{id}", middleware.Chain(updateENewspaperCategory, authPackage.AdminAuth())).Methods("PATCH")
+	// route to delete e-newspaper category
+	eNewspaperRouter.HandleFunc("/category/{id}", middleware.Chain(deleteENewspaperCategory, authPackage.AdminAuth())).Methods("DELETE")
 	eNewspaperRouter.HandleFunc("/add", middleware.Chain(addENewspaper, authPackage.AdminAuth())).Methods("POST")
 	eNewspaperRouter.HandleFunc("/edit/{id}", middleware.Chain(editENewspaper, authPackage.AdminAuth())).Methods("PATCH")
 	eNewspaperRouter.HandleFunc("/delete/{id}", middleware.Chain(deleteENewspaper, authPackage.AdminAuth())).Methods("DELETE")
