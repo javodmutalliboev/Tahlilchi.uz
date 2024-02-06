@@ -2,7 +2,6 @@ package admin
 
 import (
 	"bytes"
-	"database/sql"
 	"fmt"
 	"io"
 	"log"
@@ -12,7 +11,6 @@ import (
 
 	"Tahlilchi.uz/db"
 	"Tahlilchi.uz/response"
-	"Tahlilchi.uz/toolkit"
 	"github.com/gorilla/mux"
 	"github.com/lib/pq"
 )
@@ -91,128 +89,223 @@ func addArticleCategory(w http.ResponseWriter, r *http.Request) {
 	response.Res(w, "success", http.StatusCreated, "Category Added")
 }
 
+// ArticlePhoto is a struct to hold article photo data
+type ArticlePhoto struct {
+	ID        int    `json:"id"`
+	Article   int    `json:"article"`
+	FileName  string `json:"file_name"`
+	File      []byte `json:"file"`
+	CreatedAt string `json:"created_at"`
+}
+
+// addArticle is a handler function to add a new article to the database
 func addArticle(w http.ResponseWriter, r *http.Request) {
-	// Parse the request body
-	err := r.ParseMultipartForm(30 << 20) // 30 MB
+	// Parse the multipart form
+	err := r.ParseMultipartForm(200 << 20)
 	if err != nil {
-		log.Printf("%v: %v", r.URL, err)
-		response.Res(w, "error", http.StatusBadRequest, err.Error())
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusBadRequest, "file too large")
 		return
 	}
 
+	// title_latin
 	titleLatin := r.FormValue("title_latin")
-	titleCyrillic := r.FormValue("title_cyrillic")
-
-	if titleLatin == "" || titleCyrillic == "" {
-		log.Printf("%v: title_latin: %v; title_cyrillic: %v", r.URL, titleLatin, titleCyrillic)
-		response.Res(w, "error", http.StatusBadRequest, "title_latin and title_cyrillic are required fields")
+	if titleLatin == "" {
+		response.Res(w, "error", http.StatusBadRequest, "title_latin is required")
 		return
 	}
 
+	// description_latin
 	descriptionLatin := r.FormValue("description_latin")
+
+	// title_cyrillic
+	titleCyrillic := r.FormValue("title_cyrillic")
+	if titleCyrillic == "" {
+		response.Res(w, "error", http.StatusBadRequest, "title_cyrillic is required")
+		return
+	}
+
+	// description_cyrillic
 	descriptionCyrillic := r.FormValue("description_cyrillic")
 
-	// Get the photos files
-	photos := r.MultipartForm.File["photos"]
-	if len(photos) == 0 {
-		photos = nil
-	}
-
-	var photosForDb bytes.Buffer
-
-	for _, fh := range photos {
-		if fh.Size > 2<<20 {
-			log.Printf("%v: photo size exceeds 2MB limit: %v", r.URL, fh.Size)
-			response.Res(w, "error", http.StatusBadRequest, "photo size exceeds 2MB limit")
-			return
-		} else {
-			file, _ := fh.Open()
-			io.Copy(&photosForDb, file)
-			file.Close()
+	// photos
+	photoFiles := r.MultipartForm.File["photo"]
+	var photos []ArticlePhoto
+	if len(photoFiles) > 0 {
+		for _, fh := range photoFiles {
+			// check whether the file is an image by checking the content type
+			if fh.Header.Get("Content-Type") != "image/jpeg" && fh.Header.Get("Content-Type") != "image/png" {
+				log.Printf("%v: photo is not an image: %v", r.URL, fh.Header.Get("Content-Type"))
+				response.Res(w, "error", http.StatusBadRequest, "photo is not an image")
+				return
+			}
+			// Check if the file size is greater than 10MB
+			if fh.Size > 10<<20 {
+				log.Printf("%v: photo size exceeds 10MB limit: %v", r.URL, fh.Size)
+				response.Res(w, "error", http.StatusBadRequest, "photo size exceeds 10MB limit")
+				return
+			}
+			// Read the file
+			file, err := fh.Open()
+			if err != nil {
+				log.Printf("%v: error: %v", r.URL, err)
+				response.Res(w, "error", http.StatusInternalServerError, "server error")
+				return
+			}
+			// create a variable of type ArticlePhoto
+			var photo ArticlePhoto
+			photo.FileName = fh.Filename
+			// Read the file into a byte slice
+			photo.File, err = io.ReadAll(file)
+			if err != nil {
+				log.Printf("%v: error: %v", r.URL, err)
+				response.Res(w, "error", http.StatusInternalServerError, "server error")
+				return
+			}
+			// Append the byte slice to the photos slice
+			photos = append(photos, photo)
+			err = file.Close()
+			if err != nil {
+				log.Printf("%v: error: %v", r.URL, err)
+				response.Res(w, "error", http.StatusInternalServerError, "server error")
+				return
+			}
 		}
 	}
 
-	// Get the videos
-	videos, ok := r.Form["videos"]
-	if !ok {
-		videos = []string{}
-	}
-	videosString := toolkit.SliceToString(videos)
+	// videos
+	videos := r.Form["videos"]
+	videosString := "{" + strings.Join(videos, ",") + "}"
 
-	// Get the cover_image file
-	coverImage, coverImageHeader, err := r.FormFile("cover_image")
-	if err != nil {
-		if err == http.ErrMissingFile {
-			coverImage = nil
-		} else {
-			log.Printf("%v: cover_image error: %v", r.URL, err)
-			response.Res(w, "error", http.StatusBadRequest, "cover_image error")
+	// cover_image
+	coverImageFile, coverImageHeader, err := r.FormFile("cover_image")
+	// cover_image is []byte
+	var coverImage []byte
+	if err != nil && err != http.ErrMissingFile {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusBadRequest, "cover_image error")
+		return
+	} else if err == http.ErrMissingFile {
+		coverImage = nil
+	} else {
+		// check whether the file is an image by checking the content type
+		if coverImageHeader.Header.Get("Content-Type") != "image/jpeg" && coverImageHeader.Header.Get("Content-Type") != "image/png" {
+			log.Printf("%v: cover_image is not an image: %v", r.URL, coverImageHeader.Header.Get("Content-Type"))
+			response.Res(w, "error", http.StatusBadRequest, "cover_image is not an image")
+			return
+		}
+		// Check if the file size is greater than 15MB
+		if coverImageHeader.Size > 15<<20 {
+			log.Printf("%v: cover_image size exceeds 15MB limit: %v", r.URL, coverImageHeader.Size)
+			response.Res(w, "error", http.StatusBadRequest, "cover_image size exceeds 15MB limit")
+			return
+		}
+		// Read the file
+		coverImage, err = io.ReadAll(coverImageFile)
+		if err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+		// Close the file
+		err = coverImageFile.Close()
+		if err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
 			return
 		}
 	}
 
-	var coverImageForDB []byte = nil
-
-	if coverImage != nil {
-		if coverImageHeader.Size > 1<<20 {
-			log.Printf("%v: cover_image size exceeds 1MB limit: %v", r.URL, coverImageHeader.Size)
-			response.Res(w, "error", http.StatusBadRequest, "cover_image size exceeds 1MB limit")
-			return
-		}
-		coverImageForDB, _ = io.ReadAll(coverImage)
-		coverImage.Close()
-	}
-
-	tags, ok := r.Form["tags"]
-	if !ok {
-		// If tags don't exist, use an empty array
-		tags = []string{}
-	}
-
-	// Convert tags to PostgreSQL array format
+	// tags
+	tags := r.Form["tag"]
 	tagsString := "{" + strings.Join(tags, ",") + "}"
 
-	category := r.FormValue("category")
-	var categoryInt64 sql.NullInt64
-	if category != "" {
-		categoryInt64.Int64, err = strconv.ParseInt(category, 10, 64)
+	// category
+	categoryStr := r.FormValue("category")
+	// category nullable int
+	var category *int
+	if categoryStr != "" {
+		categoryInt, err := strconv.Atoi(categoryStr)
 		if err != nil {
 			log.Printf("%v: error: %v", r.URL, err)
-			response.Res(w, "error", http.StatusBadRequest, "invalid category value")
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
 			return
 		}
-		categoryInt64.Valid = true
+		category = &categoryInt
 	}
 
-	related := r.FormValue("related")
-	var relatedInt64 sql.NullInt64
-	if related != "" {
-		relatedInt64.Int64, err = strconv.ParseInt(related, 10, 64)
+	// related
+	relatedStr := r.FormValue("related")
+	// related nullable int
+	var related *int
+	if relatedStr != "" {
+		relatedInt, err := strconv.Atoi(relatedStr)
 		if err != nil {
 			log.Printf("%v: error: %v", r.URL, err)
-			response.Res(w, "error", http.StatusBadRequest, "invalid related value")
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
 			return
 		}
-		relatedInt64.Valid = true
+		related = &relatedInt
 	}
 
-	db, err := db.DB()
+	// Open a connection to the database
+	database, err := db.DB()
 	if err != nil {
-		log.Printf("%v: db connection error: %v", r.URL, err)
+		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
-	defer db.Close()
+	defer database.Close()
 
-	_, err = db.Exec(`INSERT INTO articles (title_latin, description_latin, title_cyrillic, description_cyrillic, photos, videos, cover_image, tags, category, related) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-		titleLatin, descriptionLatin, titleCyrillic, descriptionCyrillic, pq.Array([][]byte{photosForDb.Bytes()}), videosString, coverImageForDB, tagsString, categoryInt64, relatedInt64)
+	// Prepare the SQL statement: insert title_latin, description_latin, title_cyrillic, description_cyrillic, videos, cover_image, tags, category, related into articles return id
+	stmt, err := database.Prepare("INSERT INTO articles(title_latin, description_latin, title_cyrillic, description_cyrillic, videos, cover_image, tags, category, related) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id")
 	if err != nil {
-		log.Printf("%v: db execution error: %v", r.URL, err)
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer stmt.Close()
+
+	// Execute the SQL statement
+	// id is bigint
+	var id int64
+	err = stmt.QueryRow(titleLatin, descriptionLatin, titleCyrillic, descriptionCyrillic, videosString, coverImage, tagsString, category, related).Scan(&id)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
 
-	response.Res(w, "success", http.StatusCreated, "Article Added")
+	// Prepare the SQL statement: insert article, file_name, file
+	stmt, err = database.Prepare("INSERT INTO article_photos(article, file_name, file) VALUES($1, $2, $3)")
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		// delete the article from the articles table
+		_, err = database.Exec("DELETE FROM articles WHERE id = $1", id)
+		if err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+		}
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer stmt.Close()
+
+	// Execute the SQL statement
+	for _, photo := range photos {
+		_, err = stmt.Exec(id, photo.FileName, photo.File)
+		if err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+			// delete the article from the articles table
+			_, err = database.Exec("DELETE FROM articles WHERE id = $1", id)
+			if err != nil {
+				log.Printf("%v: error: %v", r.URL, err)
+			}
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+	}
+
+	response.Res(w, "success", http.StatusCreated, "Article added")
 }
 
 func articleExists(id string) (*bool, error) {
