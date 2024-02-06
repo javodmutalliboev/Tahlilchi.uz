@@ -42,6 +42,14 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	articleRouter.HandleFunc("/category", middleware.Chain(getArticleCategory, authPackage.AdminAuth())).Methods("GET")
 	articleRouter.HandleFunc("", middleware.Chain(addArticle, authPackage.AdminAuth())).Methods("POST")
 	articleRouter.HandleFunc("/edit/{id}", middleware.Chain(editArticle, authPackage.AdminAuth())).Methods("PATCH")
+	// article photos router
+	articlePhotosRouter := articleRouter.PathPrefix("/{id}/photos").Subrouter()
+	// route to add article photos
+	articlePhotosRouter.HandleFunc("/add", middleware.Chain(addArticlePhotos, authPackage.AdminAuth())).Methods("POST")
+	// route to get article photos
+	articlePhotosRouter.HandleFunc("", middleware.Chain(getArticlePhotos, authPackage.AdminAuth())).Methods("GET")
+	// route to delete article photo
+	articlePhotosRouter.HandleFunc("/delete/{photo_id}", middleware.Chain(deleteArticlePhoto, authPackage.AdminAuth())).Methods("DELETE")
 	articleRouter.HandleFunc("/delete/{id}", middleware.Chain(deleteArticle, authPackage.AdminAuth())).Methods("DELETE")
 	articleRouter.HandleFunc("/archive/{id}", middleware.Chain(archiveArticle, authPackage.AdminAuth())).Methods("PATCH")
 	articleRouter.HandleFunc("/count/{period}", middleware.Chain(getArticleCount, authPackage.AdminAuth())).Methods("GET")

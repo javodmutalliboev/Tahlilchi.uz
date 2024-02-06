@@ -581,6 +581,230 @@ func editArticle(w http.ResponseWriter, r *http.Request) {
 	response.Res(w, "success", http.StatusOK, "Article edited")
 }
 
+// addArticlePhotos is a handler function to add photos to an article
+func addArticlePhotos(w http.ResponseWriter, r *http.Request) {
+	// Parse the multipart form
+	err := r.ParseMultipartForm(200 << 20)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusBadRequest, "file too large")
+		return
+	}
+
+	// Parse the article id from the URL
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	// Check if the article exists
+	exists, err := articleExists(id)
+	if err != nil {
+		log.Printf("%v: add article photos articleExists(id): %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if !*exists {
+		log.Printf("%v: add article photos articleExists(id): %v", r.URL, *exists)
+		response.Res(w, "error", http.StatusBadRequest, "Cannot add photos to non existent article")
+		return
+	}
+
+	archived, err := articleIsArchived(id)
+	if err != nil {
+		log.Printf("%v: add article photos articleIsArchived(id): %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if *archived {
+		log.Printf("%v: add article photos articleIsArchived(id): %v", r.URL, *archived)
+		response.Res(w, "error", http.StatusBadRequest, "Cannot add photos to archived article")
+		return
+	}
+
+	// Get the photos from the multipart form
+	photoFiles := r.MultipartForm.File["photo"]
+	var photos []ArticlePhoto
+	if len(photoFiles) > 0 {
+		for _, fh := range photoFiles {
+			// check whether the file is an image by checking the content type
+			if fh.Header.Get("Content-Type") != "image/jpeg" && fh.Header.Get("Content-Type") != "image/png" {
+				log.Printf("%v: photo is not an image: %v", r.URL, fh.Header.Get("Content-Type"))
+				response.Res(w, "error", http.StatusBadRequest, "photo is not an image")
+				return
+			}
+			// Check if the file size is greater than 10MB
+			if fh.Size > 10<<20 {
+				log.Printf("%v: photo size exceeds 10MB limit: %v", r.URL, fh.Size)
+				response.Res(w, "error", http.StatusBadRequest, "photo size exceeds 10MB limit")
+				return
+			}
+			// Read the file
+			file, err := fh.Open()
+			if err != nil {
+				log.Printf("%v: error: %v", r.URL, err)
+				response.Res(w, "error", http.StatusInternalServerError, "server error")
+				return
+			}
+			// create a variable of type ArticlePhoto
+			var photo ArticlePhoto
+			photo.FileName = fh.Filename
+			// Read the file into a byte slice
+			photo.File, err = io.ReadAll(file)
+			if err != nil {
+				log.Printf("%v: error: %v", r.URL, err)
+				response.Res(w, "error", http.StatusInternalServerError, "server error")
+				return
+			}
+			// close the file
+			err = file.Close()
+			if err != nil {
+				log.Printf("%v: error: %v", r.URL, err)
+				response.Res(w, "error", http.StatusInternalServerError, "server error")
+				return
+			}
+			// Append the byte slice to the photos slice
+			photos = append(photos, photo)
+		}
+		// Open a connection to the database
+		database, err := db.DB()
+		if err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+		defer database.Close()
+		// Prepare the SQL statement: insert article, file_name, file into article_photos
+		stmt, err := database.Prepare("INSERT INTO article_photos(article, file_name, file) VALUES($1, $2, $3)")
+		if err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+		defer stmt.Close()
+		// Execute the SQL statement
+		for _, photo := range photos {
+			_, err = stmt.Exec(id, photo.FileName, photo.File)
+			if err != nil {
+				log.Printf("%v: error: %v", r.URL, err)
+				response.Res(w, "error", http.StatusInternalServerError, "server error")
+				return
+			}
+		}
+	}
+	response.Res(w, "success", http.StatusCreated, "Photos added")
+}
+
+// getArticlePhotos is a handler function to get photos of an article
+func getArticlePhotos(w http.ResponseWriter, r *http.Request) {
+	// Parse the article id from the URL
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	// Check if the article exists
+	exists, err := articleExists(id)
+	if err != nil {
+		log.Printf("%v: get article photos articleExists(id): %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if !*exists {
+		log.Printf("%v: get article photos articleExists(id): %v", r.URL, *exists)
+		response.Res(w, "error", http.StatusBadRequest, "Cannot get photos of non existent article")
+		return
+	}
+
+	// Open a connection to the database
+	database, err := db.DB()
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	// Prepare the SQL statement: select id, article, file_name, created_at from article_photos where article = $1
+	rows, err := database.Query("SELECT id, article, file_name, created_at FROM article_photos WHERE article = $1", id)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer rows.Close()
+
+	// Create a slice of type ArticlePhoto
+	var photos []ArticlePhoto
+	// Iterate over the rows
+	for rows.Next() {
+		// Create a variable of type ArticlePhoto
+		var p ArticlePhoto
+		// Scan the rows into the variable
+		err := rows.Scan(&p.ID, &p.Article, &p.FileName, &p.CreatedAt)
+		if err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+		// Append the variable to the slice
+		photos = append(photos, p)
+	}
+	// Send the response
+	response.Res(w, "success", http.StatusOK, photos)
+}
+
+// deleteArticlePhoto is a handler function to delete a photo of an article
+func deleteArticlePhoto(w http.ResponseWriter, r *http.Request) {
+	// Parse the article id from the URL
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	// Check if the article exists
+	exists, err := articleExists(id)
+	if err != nil {
+		log.Printf("%v: delete article photo articleExists(id): %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if !*exists {
+		log.Printf("%v: delete article photo articleExists(id): %v", r.URL, *exists)
+		response.Res(w, "error", http.StatusBadRequest, "Cannot delete photo of non existent article")
+		return
+	}
+
+	// Parse the photo id from the URL
+	photoID := vars["photo_id"]
+
+	// Open a connection to the database
+	database, err := db.DB()
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	// Prepare the SQL statement: delete from article_photos where id = $1
+	stmt, err := database.Prepare("DELETE FROM article_photos WHERE id = $1")
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer stmt.Close()
+
+	// Execute the SQL statement
+	_, err = stmt.Exec(photoID)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	// Send the response
+	response.Res(w, "success", http.StatusOK, "Photo deleted")
+}
+
 func deleteArticle(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id := params["id"]
@@ -619,6 +843,15 @@ func deleteArticle(w http.ResponseWriter, r *http.Request) {
 	}
 	defer db.Close()
 
+	// First delete the photos of the article
+	_, err = db.Exec("DELETE FROM article_photos WHERE article = $1", id)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	// Prepare the SQL statement
 	stmt, err := db.Prepare("DELETE FROM articles WHERE id=$1")
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
