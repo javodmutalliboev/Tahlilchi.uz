@@ -33,7 +33,14 @@ func ClientRouter(r *mux.Router) {
 	bpPostRouter.HandleFunc("/list", getBusinessPromotionalPosts).Methods("GET")
 
 	eNewspaperRouter := clientRouter.PathPrefix("/e-newspaper").Subrouter()
+	// route to get e-newspaper category list
+	eNewspaperRouter.HandleFunc("/category/list", getENewspaperCategoryList).Methods("GET")
+	// route to get e-newspaper list by category
+	eNewspaperRouter.HandleFunc("/category/{category}", getENewspaperListByCategory).Methods("GET")
+	// route to get /e-newspaper/list
 	eNewspaperRouter.HandleFunc("/list", getENewspaperList).Methods("GET")
+	// route to get /e-newspaper/{id}/cover_image
+	eNewspaperRouter.HandleFunc("/{id}/cover_image", getENewspaperCoverImage).Methods("GET")
 	// route to get /e-newspaper/{id}/file/{alphabet} where file is pdf, alphabet is latin or cyrillic
 	eNewspaperRouter.HandleFunc("/{id}/file/{alphabet}", getENewspaperFile).Methods("GET")
 
