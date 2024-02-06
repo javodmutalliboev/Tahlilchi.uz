@@ -207,14 +207,14 @@ func addENewspaper(w http.ResponseWriter, r *http.Request) {
 	} else if err == http.ErrMissingFile {
 		fileLatinForDB = nil
 	} else {
-		// Check size limits
-		if file_latin_header.Size > int64(30<<20) {
-			response.Res(w, "error", http.StatusBadRequest, "file_latin exceeds 6MB limit")
-			return
-		}
 		// check whether file is pdf
 		if file_latin_header.Header.Get("Content-Type") != "application/pdf" {
 			response.Res(w, "error", http.StatusBadRequest, "file_latin is not a pdf")
+			return
+		}
+		// Check size limits
+		if file_latin_header.Size > int64(30<<20) {
+			response.Res(w, "error", http.StatusBadRequest, "file_latin exceeds 30MB limit")
 			return
 		}
 		fileLatinForDB, _ = io.ReadAll(file_latin)
@@ -230,13 +230,13 @@ func addENewspaper(w http.ResponseWriter, r *http.Request) {
 	} else if err == http.ErrMissingFile {
 		fileCyrillicForDB = nil
 	} else {
-		if file_cyrillic_header.Size > int64(30<<20) {
-			response.Res(w, "error", http.StatusBadRequest, "file_cyrillic exceeds 6MB limit")
-			return
-		}
 		// check whether file is pdf
 		if file_cyrillic_header.Header.Get("Content-Type") != "application/pdf" {
 			response.Res(w, "error", http.StatusBadRequest, "file_cyrillic is not a pdf")
+			return
+		}
+		if file_cyrillic_header.Size > int64(30<<20) {
+			response.Res(w, "error", http.StatusBadRequest, "file_cyrillic exceeds 30MB limit")
 			return
 		}
 		fileCyrillicForDB, _ = io.ReadAll(file_cyrillic)
@@ -252,13 +252,13 @@ func addENewspaper(w http.ResponseWriter, r *http.Request) {
 	} else if err == http.ErrMissingFile {
 		coverImageForDB = nil
 	} else {
-		if cover_image_header.Size > int64(15<<20) {
-			response.Res(w, "error", http.StatusBadRequest, "Cover image exceeds 3MB limit")
-			return
-		}
 		// check whether file is image
 		if cover_image_header.Header.Get("Content-Type") != "image/jpeg" && cover_image_header.Header.Get("Content-Type") != "image/png" {
 			response.Res(w, "error", http.StatusBadRequest, "cover_image is not an image")
+			return
+		}
+		if cover_image_header.Size > int64(15<<20) {
+			response.Res(w, "error", http.StatusBadRequest, "Cover image exceeds 15MB limit")
 			return
 		}
 		coverImageForDB, _ = io.ReadAll(cover_image)
@@ -367,7 +367,7 @@ func editENewspaper(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse multipart form
-	err = r.ParseMultipartForm(15 << 20)
+	err = r.ParseMultipartForm(80 << 20)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusBadRequest, err.Error())
@@ -419,9 +419,14 @@ func editENewspaper(w http.ResponseWriter, r *http.Request) {
 		return
 	} else if err == http.ErrMissingFile {
 	} else {
+		// check whether file is pdf
+		if file_latin_header.Header.Get("Content-Type") != "application/pdf" {
+			response.Res(w, "error", http.StatusBadRequest, "file_latin is not a pdf")
+			return
+		}
 		// Check size limits
-		if file_latin_header.Size > int64(6<<20) {
-			response.Res(w, "error", http.StatusBadRequest, "file_latin exceeds 6MB limit")
+		if file_latin_header.Size > int64(30<<20) {
+			response.Res(w, "error", http.StatusBadRequest, "file_latin exceeds 30MB limit")
 			return
 		}
 		fileLatinForDB, _ := io.ReadAll(file_latin)
@@ -446,8 +451,14 @@ func editENewspaper(w http.ResponseWriter, r *http.Request) {
 		return
 	} else if err == http.ErrMissingFile {
 	} else {
-		if file_cyrillic_header.Size > int64(6<<20) {
-			response.Res(w, "error", http.StatusBadRequest, "file_cyrillic exceeds 6MB limit")
+		// check whether file is pdf
+		if file_cyrillic_header.Header.Get("Content-Type") != "application/pdf" {
+			response.Res(w, "error", http.StatusBadRequest, "file_cyrillic is not a pdf")
+			return
+		}
+		// Check size limits
+		if file_cyrillic_header.Size > int64(30<<20) {
+			response.Res(w, "error", http.StatusBadRequest, "file_cyrillic exceeds 30MB limit")
 			return
 		}
 		fileCyrillicForDB, _ := io.ReadAll(file_cyrillic)
@@ -472,8 +483,14 @@ func editENewspaper(w http.ResponseWriter, r *http.Request) {
 		return
 	} else if err == http.ErrMissingFile {
 	} else {
-		if cover_image_header.Size > int64(3<<20) {
-			response.Res(w, "error", http.StatusBadRequest, "Cover image exceeds 3MB limit")
+		// check whether file is image
+		if cover_image_header.Header.Get("Content-Type") != "image/jpeg" && cover_image_header.Header.Get("Content-Type") != "image/png" {
+			response.Res(w, "error", http.StatusBadRequest, "cover_image is not an image")
+			return
+		}
+		// Check size limits
+		if cover_image_header.Size > int64(15<<20) {
+			response.Res(w, "error", http.StatusBadRequest, "Cover image exceeds 15MB limit")
 			return
 		}
 		coverImageForDB, _ := io.ReadAll(cover_image)
@@ -486,6 +503,29 @@ func editENewspaper(w http.ResponseWriter, r *http.Request) {
 		_, err = db.Exec(sqlStatement, coverImageForDB, id)
 		if err != nil {
 			log.Printf("%v: writing cover_image into db: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+	}
+
+	// category
+	category := r.FormValue("category")
+	if category != "" {
+		// convert category to int
+		categoryInt, err := strconv.Atoi(category)
+		if err != nil {
+			log.Printf("%v: category conversion error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusBadRequest, "category conversion error")
+			return
+		}
+		sqlStatement := `
+			UPDATE e_newspapers
+			SET category = $1, edited_at = NOW()
+			WHERE id = $2;
+		`
+		_, err = db.Exec(sqlStatement, categoryInt, id)
+		if err != nil {
+			log.Printf("%v: writing category into db: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
 			return
 		}
