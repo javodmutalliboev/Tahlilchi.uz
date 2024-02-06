@@ -250,6 +250,16 @@ func addENewspaper(w http.ResponseWriter, r *http.Request) {
 		cover_image.Close()
 	}
 
+	// category
+	category := r.FormValue("category")
+	// convert category to int
+	categoryInt, err := strconv.Atoi(category)
+	if err != nil {
+		log.Printf("%v: category conversion error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusBadRequest, "category conversion error")
+		return
+	}
+
 	db, err := db.DB()
 	if err != nil {
 		log.Println(err)
@@ -258,8 +268,8 @@ func addENewspaper(w http.ResponseWriter, r *http.Request) {
 	}
 	defer db.Close()
 
-	_, err = db.Exec(`INSERT INTO e_newspapers (title_latin, title_cyrillic, file_latin, file_cyrillic, cover_image) VALUES ($1, $2, $3, $4, $5)`,
-		title_latin, title_cyrillic, fileLatinForDB, fileCyrillicForDB, coverImageForDB)
+	_, err = db.Exec(`INSERT INTO e_newspapers (title_latin, title_cyrillic, file_latin, file_cyrillic, cover_image, category) VALUES ($1, $2, $3, $4, $5, $6)`,
+		title_latin, title_cyrillic, fileLatinForDB, fileCyrillicForDB, coverImageForDB, categoryInt)
 	if err != nil {
 		log.Printf("%v: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
