@@ -188,7 +188,7 @@ func deleteENewspaperCategory(w http.ResponseWriter, r *http.Request) {
 }
 
 func addENewspaper(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseMultipartForm(20 << 20) // Max memory 20MB
+	err := r.ParseMultipartForm(80 << 20) // Max memory 80MB
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -208,8 +208,13 @@ func addENewspaper(w http.ResponseWriter, r *http.Request) {
 		fileLatinForDB = nil
 	} else {
 		// Check size limits
-		if file_latin_header.Size > int64(6<<20) {
+		if file_latin_header.Size > int64(30<<20) {
 			response.Res(w, "error", http.StatusBadRequest, "file_latin exceeds 6MB limit")
+			return
+		}
+		// check whether file is pdf
+		if file_latin_header.Header.Get("Content-Type") != "application/pdf" {
+			response.Res(w, "error", http.StatusBadRequest, "file_latin is not a pdf")
 			return
 		}
 		fileLatinForDB, _ = io.ReadAll(file_latin)
@@ -225,8 +230,13 @@ func addENewspaper(w http.ResponseWriter, r *http.Request) {
 	} else if err == http.ErrMissingFile {
 		fileCyrillicForDB = nil
 	} else {
-		if file_cyrillic_header.Size > int64(6<<20) {
+		if file_cyrillic_header.Size > int64(30<<20) {
 			response.Res(w, "error", http.StatusBadRequest, "file_cyrillic exceeds 6MB limit")
+			return
+		}
+		// check whether file is pdf
+		if file_cyrillic_header.Header.Get("Content-Type") != "application/pdf" {
+			response.Res(w, "error", http.StatusBadRequest, "file_cyrillic is not a pdf")
 			return
 		}
 		fileCyrillicForDB, _ = io.ReadAll(file_cyrillic)
@@ -242,8 +252,13 @@ func addENewspaper(w http.ResponseWriter, r *http.Request) {
 	} else if err == http.ErrMissingFile {
 		coverImageForDB = nil
 	} else {
-		if cover_image_header.Size > int64(3<<20) {
+		if cover_image_header.Size > int64(15<<20) {
 			response.Res(w, "error", http.StatusBadRequest, "Cover image exceeds 3MB limit")
+			return
+		}
+		// check whether file is image
+		if cover_image_header.Header.Get("Content-Type") != "image/jpeg" && cover_image_header.Header.Get("Content-Type") != "image/png" {
+			response.Res(w, "error", http.StatusBadRequest, "cover_image is not an image")
 			return
 		}
 		coverImageForDB, _ = io.ReadAll(cover_image)
