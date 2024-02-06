@@ -1,7 +1,6 @@
 package admin
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"log"
@@ -174,7 +173,7 @@ func addArticle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// videos
-	videos := r.Form["videos"]
+	videos := r.Form["video"]
 	videosString := "{" + strings.Join(videos, ",") + "}"
 
 	// cover_image
@@ -384,7 +383,7 @@ func editArticle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse multipart form
-	err = r.ParseMultipartForm(15 << 20)
+	err = r.ParseMultipartForm(200 << 20)
 	if err != nil {
 		log.Printf("%v: edit article: %v", r.URL, err)
 		response.Res(w, "error", http.StatusBadRequest, err.Error())
@@ -459,39 +458,6 @@ func editArticle(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	photos := r.MultipartForm.File["photos"]
-	if len(photos) == 0 {
-		photos = nil
-	}
-
-	var photosForDb bytes.Buffer
-
-	for _, fh := range photos {
-		if fh.Size > 2<<20 {
-			log.Printf("%v: photo size exceeds 2MB limit: %v", r.URL, fh.Size)
-			response.Res(w, "error", http.StatusBadRequest, "photo size exceeds 2MB limit")
-			return
-		} else {
-			file, _ := fh.Open()
-			io.Copy(&photosForDb, file)
-			file.Close()
-		}
-	}
-
-	if photosForDb.Len() > 0 {
-		sqlStatement := `
-			UPDATE articles
-			SET photos = $1, updated_at = NOW()
-			WHERE id = $2;
-		`
-		_, err = db.Exec(sqlStatement, pq.Array([][]byte{photosForDb.Bytes()}), id)
-		if err != nil {
-			log.Printf("%v: writing photos into db: %v", r.URL, err)
-			response.Res(w, "error", http.StatusInternalServerError, "server error")
-			return
-		}
-	}
-
 	if videos, ok := r.Form["videos"]; ok {
 		videosString := "{" + strings.Join(videos, ",") + "}"
 		sqlStatement := `
@@ -507,10 +473,10 @@ func editArticle(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	coverImage, coverImageHeader, err := r.FormFile("cover_image")
+	coverImageFile, coverImageHeader, err := r.FormFile("cover_image")
 	if err != nil {
 		if err == http.ErrMissingFile {
-			coverImage = nil
+			coverImageFile = nil
 		} else {
 			log.Printf("%v: cover_image error: %v", r.URL, err)
 			response.Res(w, "error", http.StatusBadRequest, "cover_image error")
@@ -518,22 +484,38 @@ func editArticle(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	var coverImageForDB []byte = nil
+	var coverImage []byte = nil
 
-	if coverImage != nil {
-		if coverImageHeader.Size > 1<<20 {
-			log.Printf("%v: cover_image size exceeds 1MB limit: %v", r.URL, coverImageHeader.Size)
-			response.Res(w, "error", http.StatusBadRequest, "cover_image size exceeds 1MB limit")
+	if coverImageFile != nil {
+		// check whether the file is an image by checking the content type
+		if coverImageHeader.Header.Get("Content-Type") != "image/jpeg" && coverImageHeader.Header.Get("Content-Type") != "image/png" {
+			log.Printf("%v: cover_image is not an image: %v", r.URL, coverImageHeader.Header.Get("Content-Type"))
+			response.Res(w, "error", http.StatusBadRequest, "cover_image is not an image")
 			return
 		}
-		coverImageForDB, _ = io.ReadAll(coverImage)
-		coverImage.Close()
+		// Check if the file size is greater than 15MB
+		if coverImageHeader.Size > 15<<20 {
+			log.Printf("%v: cover_image size exceeds 15MB limit: %v", r.URL, coverImageHeader.Size)
+			response.Res(w, "error", http.StatusBadRequest, "cover_image size exceeds 15MB limit")
+			return
+		}
+		// Read the file
+		coverImage, err = io.ReadAll(coverImageFile)
+		if err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+		// Close the file
+		coverImageFile.Close()
+		// Prepare the SQL statement
 		sqlStatement := `
 			UPDATE articles
 			SET cover_image = $1, updated_at = NOW()
 			WHERE id = $2;
 		`
-		_, err = db.Exec(sqlStatement, coverImageForDB, id)
+		// Execute the SQL statement
+		_, err = db.Exec(sqlStatement, coverImage, id)
 		if err != nil {
 			log.Printf("%v: writing cover_image into db: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
