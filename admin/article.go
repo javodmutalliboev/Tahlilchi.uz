@@ -276,23 +276,10 @@ func addArticle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Prepare the SQL statement: insert article, file_name, file
-	stmt, err = database.Prepare("INSERT INTO article_photos(article, file_name, file) VALUES($1, $2, $3)")
-	if err != nil {
-		log.Printf("%v: error: %v", r.URL, err)
-		// delete the article from the articles table
-		_, err = database.Exec("DELETE FROM articles WHERE id = $1", id)
-		if err != nil {
-			log.Printf("%v: error: %v", r.URL, err)
-		}
-		response.Res(w, "error", http.StatusInternalServerError, "server error")
-		return
-	}
-	defer stmt.Close()
-
-	// Execute the SQL statement
-	for _, photo := range photos {
-		_, err = stmt.Exec(id, photo.FileName, photo.File)
+	// check if len(photos) > 0
+	if len(photos) > 0 {
+		// Prepare the SQL statement: insert article, file_name, file into article_photos
+		stmt, err = database.Prepare("INSERT INTO article_photos(article, file_name, file) VALUES($1, $2, $3)")
 		if err != nil {
 			log.Printf("%v: error: %v", r.URL, err)
 			// delete the article from the articles table
@@ -302,6 +289,22 @@ func addArticle(w http.ResponseWriter, r *http.Request) {
 			}
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
 			return
+		}
+		defer stmt.Close()
+
+		// Execute the SQL statement
+		for _, photo := range photos {
+			_, err = stmt.Exec(id, photo.FileName, photo.File)
+			if err != nil {
+				log.Printf("%v: error: %v", r.URL, err)
+				// delete the article from the articles table
+				_, err = database.Exec("DELETE FROM articles WHERE id = $1", id)
+				if err != nil {
+					log.Printf("%v: error: %v", r.URL, err)
+				}
+				response.Res(w, "error", http.StatusInternalServerError, "server error")
+				return
+			}
 		}
 	}
 
