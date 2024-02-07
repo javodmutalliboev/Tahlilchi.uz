@@ -19,6 +19,7 @@ type NewsPost struct {
 	DescriptionCyrillic string         `json:"description_cyrillic"`
 	Video               string         `json:"video"`
 	Tags                pq.StringArray `json:"tags"`
+	CreatedAt           string         `json:"created_at"`
 }
 
 func getAllNewsPosts(w http.ResponseWriter, r *http.Request) {
@@ -48,7 +49,7 @@ func getAllNewsPosts(w http.ResponseWriter, r *http.Request) {
 	defer database.Close()
 
 	// Get the slice of posts
-	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, video, tags FROM news_posts WHERE archived = false AND completed = true ORDER BY id DESC LIMIT $1 OFFSET $2", limit, start)
+	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, video, tags, created_at FROM news_posts WHERE archived = false AND completed = true ORDER BY id DESC LIMIT $1 OFFSET $2", limit, start)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -59,7 +60,7 @@ func getAllNewsPosts(w http.ResponseWriter, r *http.Request) {
 	var posts []NewsPost
 	for rows.Next() {
 		var post NewsPost
-		err := rows.Scan(&post.ID, &post.TitleLatin, &post.DescriptionLatin, &post.TitleCyrillic, &post.DescriptionCyrillic, &post.Video, &post.Tags)
+		err := rows.Scan(&post.ID, &post.TitleLatin, &post.DescriptionLatin, &post.TitleCyrillic, &post.DescriptionCyrillic, &post.Video, &post.Tags, &post.CreatedAt)
 		if err != nil {
 			log.Printf("%v: error: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -106,7 +107,7 @@ func getNewsByCategory(w http.ResponseWriter, r *http.Request) {
 	}
 	defer database.Close()
 
-	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, video, tags FROM news_posts WHERE category = $1 AND archived = false AND completed = true ORDER BY id DESC LIMIT $2 OFFSET $3", category, limit, start)
+	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, video, tags, created_at FROM news_posts WHERE category = $1 AND archived = false AND completed = true ORDER BY id DESC LIMIT $2 OFFSET $3", category, limit, start)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -117,7 +118,7 @@ func getNewsByCategory(w http.ResponseWriter, r *http.Request) {
 	var posts []NewsPost
 	for rows.Next() {
 		var post NewsPost
-		err := rows.Scan(&post.ID, &post.TitleLatin, &post.DescriptionLatin, &post.TitleCyrillic, &post.DescriptionCyrillic, &post.Video, &post.Tags)
+		err := rows.Scan(&post.ID, &post.TitleLatin, &post.DescriptionLatin, &post.TitleCyrillic, &post.DescriptionCyrillic, &post.Video, &post.Tags, &post.CreatedAt)
 		if err != nil {
 			log.Printf("%v: error: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -164,7 +165,7 @@ func getNewsBySubCategory(w http.ResponseWriter, r *http.Request) {
 	}
 	defer database.Close()
 
-	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, video, tags FROM news_posts WHERE subcategory = $1 AND archived = false AND completed = true ORDER BY id DESC LIMIT $2 OFFSET $3", subcategory, limit, start)
+	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, video, tags, created_at FROM news_posts WHERE subcategory = $1 AND archived = false AND completed = true ORDER BY id DESC LIMIT $2 OFFSET $3", subcategory, limit, start)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -175,7 +176,7 @@ func getNewsBySubCategory(w http.ResponseWriter, r *http.Request) {
 	var posts []NewsPost
 	for rows.Next() {
 		var post NewsPost
-		err := rows.Scan(&post.ID, &post.TitleLatin, &post.DescriptionLatin, &post.TitleCyrillic, &post.DescriptionCyrillic, &post.Video, &post.Tags)
+		err := rows.Scan(&post.ID, &post.TitleLatin, &post.DescriptionLatin, &post.TitleCyrillic, &post.DescriptionCyrillic, &post.Video, &post.Tags, &post.CreatedAt)
 		if err != nil {
 			log.Printf("%v: error: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -222,7 +223,7 @@ func getNewsByRegion(w http.ResponseWriter, r *http.Request) {
 	}
 	defer database.Close()
 
-	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, video, tags FROM news_posts WHERE region = $1 AND archived = false AND completed = true ORDER BY id DESC LIMIT $2 OFFSET $3", region, limit, start)
+	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, video, tags, created_at FROM news_posts WHERE region = $1 AND archived = false AND completed = true ORDER BY id DESC LIMIT $2 OFFSET $3", region, limit, start)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -233,7 +234,7 @@ func getNewsByRegion(w http.ResponseWriter, r *http.Request) {
 	var posts []NewsPost
 	for rows.Next() {
 		var post NewsPost
-		err := rows.Scan(&post.ID, &post.TitleLatin, &post.DescriptionLatin, &post.TitleCyrillic, &post.DescriptionCyrillic, &post.Video, &post.Tags)
+		err := rows.Scan(&post.ID, &post.TitleLatin, &post.DescriptionLatin, &post.TitleCyrillic, &post.DescriptionCyrillic, &post.Video, &post.Tags, &post.CreatedAt)
 		if err != nil {
 			log.Printf("%v: error: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -277,7 +278,7 @@ func getTopNews(w http.ResponseWriter, r *http.Request) {
 	}
 	defer database.Close()
 
-	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, video, tags FROM news_posts WHERE archived = false AND top = true AND completed = true ORDER BY id DESC LIMIT $1 OFFSET $2", limit, start)
+	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, video, tags, created_at FROM news_posts WHERE archived = false AND top = true AND completed = true ORDER BY id DESC LIMIT $1 OFFSET $2", limit, start)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -288,7 +289,7 @@ func getTopNews(w http.ResponseWriter, r *http.Request) {
 	var posts []NewsPost
 	for rows.Next() {
 		var post NewsPost
-		err := rows.Scan(&post.ID, &post.TitleLatin, &post.DescriptionLatin, &post.TitleCyrillic, &post.DescriptionCyrillic, &post.Video, &post.Tags)
+		err := rows.Scan(&post.ID, &post.TitleLatin, &post.DescriptionLatin, &post.TitleCyrillic, &post.DescriptionCyrillic, &post.Video, &post.Tags, &post.CreatedAt)
 		if err != nil {
 			log.Printf("%v: error: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -332,7 +333,7 @@ func getLatestNews(w http.ResponseWriter, r *http.Request) {
 	}
 	defer database.Close()
 
-	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, video, tags FROM news_posts WHERE archived = false AND latest = true AND completed = true ORDER BY id DESC LIMIT $1 OFFSET $2", limit, start)
+	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, video, tags, created_at FROM news_posts WHERE archived = false AND latest = true AND completed = true ORDER BY id DESC LIMIT $1 OFFSET $2", limit, start)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -343,7 +344,7 @@ func getLatestNews(w http.ResponseWriter, r *http.Request) {
 	var posts []NewsPost
 	for rows.Next() {
 		var post NewsPost
-		err := rows.Scan(&post.ID, &post.TitleLatin, &post.DescriptionLatin, &post.TitleCyrillic, &post.DescriptionCyrillic, &post.Video, &post.Tags)
+		err := rows.Scan(&post.ID, &post.TitleLatin, &post.DescriptionLatin, &post.TitleCyrillic, &post.DescriptionCyrillic, &post.Video, &post.Tags, &post.CreatedAt)
 		if err != nil {
 			log.Printf("%v: error: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -390,7 +391,7 @@ func getRelatedNewsPosts(w http.ResponseWriter, r *http.Request) {
 	}
 	defer database.Close()
 
-	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, video, tags FROM news_posts WHERE related = $1 AND archived = false AND completed = true ORDER BY id DESC LIMIT $2 OFFSET $3", id, limit, start)
+	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, video, tags, created_at FROM news_posts WHERE related = $1 AND archived = false AND completed = true ORDER BY id DESC LIMIT $2 OFFSET $3", id, limit, start)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -401,7 +402,7 @@ func getRelatedNewsPosts(w http.ResponseWriter, r *http.Request) {
 	var posts []NewsPost
 	for rows.Next() {
 		var post NewsPost
-		err := rows.Scan(&post.ID, &post.TitleLatin, &post.DescriptionLatin, &post.TitleCyrillic, &post.DescriptionCyrillic, &post.Video, &post.Tags)
+		err := rows.Scan(&post.ID, &post.TitleLatin, &post.DescriptionLatin, &post.TitleCyrillic, &post.DescriptionCyrillic, &post.Video, &post.Tags, &post.CreatedAt)
 		if err != nil {
 			log.Printf("%v: error: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
