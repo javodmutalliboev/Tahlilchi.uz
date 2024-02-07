@@ -151,26 +151,19 @@ func GetVideoNewsList(limit, offset int) (*VideoNewsListResponse, error) {
 	}
 
 	// set appropriate value for previous field
-	if offset == 0 {
-		vnList.Previous = false
-	} else {
-		vnList.Previous = true
-	}
+	vnList.Previous = offset > 0
 
 	// set appropriate value for next field
 	// total count of video news
-	var count int
+	var total int
 	// execute the select statement to get the count of video news
-	err = database.QueryRow("SELECT COUNT(*) FROM video_news").Scan(&count)
+	err = database.QueryRow("SELECT COUNT(*) FROM video_news").Scan(&total)
 	if err != nil {
 		return nil, err
 	}
 	// if the count is greater than the sum of the offset and limit, set next to true
-	if count > offset+limit {
-		vnList.Next = true
-	} else {
-		vnList.Next = false
-	}
+	vnList.Next = total > offset+limit
+
 	// return the VideoNewsListResponse and nil
 	return &vnList, nil
 }

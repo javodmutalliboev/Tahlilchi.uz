@@ -1113,8 +1113,16 @@ func getNewsPosts(w http.ResponseWriter, r *http.Request) {
 		posts = append(posts, p)
 	}
 
-	hasNextPage := hasMoreProducts(database, page, limit)
-	hasPreviousPage := page > 1
+	hasPreviousPage := start > 0
+	// get total count of news posts
+	var total int
+	err = database.QueryRow("SELECT COUNT(*) FROM news_posts").Scan(&total)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	hasNextPage := total > (start + limit)
 
 	data := ResponseNewsPostsData{
 		NewsPosts:    posts,
@@ -1123,21 +1131,6 @@ func getNewsPosts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.Res(w, "success", http.StatusOK, data)
-}
-
-func hasMoreProducts(db *sql.DB, page int, limit int) bool {
-	// Calculate the offset for the next page
-	offset := page * limit
-
-	// Query the database for the number of products
-	var count int
-	err := db.QueryRow("SELECT COUNT(*) FROM news_posts").Scan(&count)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Return true if there are more products beyond the current page
-	return offset < count
 }
 
 type NewsPost struct {

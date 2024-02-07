@@ -102,15 +102,30 @@ func getVideoNewsList(w http.ResponseWriter, r *http.Request) {
 	limitStr := r.URL.Query().Get("limit")
 	// create int page and limit
 	var page, limit int
+	var err error
 	// if page is not empty, convert it to int
 	if pageStr != "" {
-		page, _ = strconv.Atoi(pageStr)
+		page, err = strconv.Atoi(pageStr)
+		if err != nil {
+			// log the error
+			log.Printf("%v: error: %v", r.URL, err)
+			// if there is an error converting the page to int, return a bad request response
+			response.Res(w, "error", http.StatusBadRequest, err.Error())
+			return
+		}
 	} else {
 		page = 1
 	}
 	// if limit is not empty, convert it to int
 	if limitStr != "" {
-		limit, _ = strconv.Atoi(limitStr)
+		limit, err = strconv.Atoi(limitStr)
+		if err != nil {
+			// log the error
+			log.Printf("%v: error: %v", r.URL, err)
+			// if there is an error converting the limit to int, return a bad request response
+			response.Res(w, "error", http.StatusBadRequest, err.Error())
+			return
+		}
 	} else {
 		limit = 10
 	}
