@@ -45,7 +45,12 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	articleRouter.HandleFunc("/category", middleware.Chain(getArticleCategory, authPackage.AdminAuth())).Methods("GET")
 	// route to update article category
 	articleRouter.HandleFunc("/category/{id}", middleware.Chain(updateArticleCategory, authPackage.AdminAuth())).Methods("PATCH")
+	// route to delete article category
+	articleRouter.HandleFunc("/category/{id}", middleware.Chain(deleteArticleCategory, authPackage.AdminAuth())).Methods("DELETE")
+	// route to add article
 	articleRouter.HandleFunc("", middleware.Chain(addArticle, authPackage.AdminAuth())).Methods("POST")
+
+	// route to edit article
 	articleRouter.HandleFunc("/edit/{id}", middleware.Chain(editArticle, authPackage.AdminAuth())).Methods("PATCH")
 	// article photos router
 	articlePhotosRouter := articleRouter.PathPrefix("/{id}/photos").Subrouter()
@@ -57,11 +62,21 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	articlePhotosRouter.HandleFunc("/{photo_id}", middleware.Chain(getArticlePhoto, authPackage.AdminAuth())).Methods("GET")
 	// route to delete article photo
 	articlePhotosRouter.HandleFunc("/delete/{photo_id}", middleware.Chain(deleteArticlePhoto, authPackage.AdminAuth())).Methods("DELETE")
+	// route to edit article
+
+	// route to get article cover_image
+	articleRouter.HandleFunc("/{id}/cover_image", middleware.Chain(getArticleCoverImage, authPackage.AdminAuth())).Methods("GET")
+	// route to delete article
 	articleRouter.HandleFunc("/delete/{id}", middleware.Chain(deleteArticle, authPackage.AdminAuth())).Methods("DELETE")
+	// route to archive article
 	articleRouter.HandleFunc("/archive/{id}", middleware.Chain(archiveArticle, authPackage.AdminAuth())).Methods("PATCH")
+	// route to get article count
 	articleRouter.HandleFunc("/count/{period}", middleware.Chain(getArticleCount, authPackage.AdminAuth())).Methods("GET")
+	// route to get article count all
 	articleRouter.HandleFunc("/count", middleware.Chain(getArticleCountAll, authPackage.AdminAuth())).Methods("GET")
+	// route to get article list
 	articleRouter.HandleFunc("/list", middleware.Chain(getArticles, authPackage.AdminAuth())).Methods("GET")
+	// route to unarchive article
 	articleRouter.HandleFunc("/unarchive/{id}", middleware.Chain(unArchiveArticle, authPackage.AdminAuth())).Methods("PATCH")
 	// route to make article completed field true/false
 	articleRouter.HandleFunc("/completed/{id}", middleware.Chain(articleCompleted, authPackage.AdminAuth())).Methods("PATCH")

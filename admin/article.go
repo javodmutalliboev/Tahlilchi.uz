@@ -159,6 +159,54 @@ func updateArticleCategory(w http.ResponseWriter, r *http.Request) {
 	response.Res(w, "success", http.StatusOK, "Category updated")
 }
 
+// deleteArticleCategory is a handler function to delete an article category from the database
+func deleteArticleCategory(w http.ResponseWriter, r *http.Request) {
+	// get id from url params
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	// check if the category exists
+	database, err := db.DB()
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	var exists bool
+	err = database.QueryRow("SELECT EXISTS(SELECT 1 FROM article_category WHERE id=$1)", id).Scan(&exists)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if !exists {
+		response.Res(w, "error", http.StatusBadRequest, "Category does not exist")
+		return
+	}
+
+	// Prepare the SQL statement: delete from article_category where id = $1
+	stmt, err := database.Prepare("DELETE FROM article_category WHERE id = $1")
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer stmt.Close()
+
+	// Execute the SQL statement
+	_, err = stmt.Exec(id)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	response.Res(w, "success", http.StatusOK, "Category deleted")
+}
+
 // addArticleCategory is a handler function to add a new article category to the database
 func addArticleCategory(w http.ResponseWriter, r *http.Request) {
 	db, err := db.DB()
@@ -915,8 +963,10 @@ func getArticlePhoto(w http.ResponseWriter, r *http.Request) {
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
-	// Send the response
-	response.Res(w, "success", http.StatusOK, photo)
+	// Send the response as photo
+	w.Header().Set("Content-Type", "image/jpeg")
+	w.Header().Set("Content-Length", strconv.Itoa(len(photo)))
+	w.Write(photo)
 }
 
 // deleteArticlePhoto is a handler function to delete a photo of an article
@@ -971,6 +1021,65 @@ func deleteArticlePhoto(w http.ResponseWriter, r *http.Request) {
 	response.Res(w, "success", http.StatusOK, "Photo deleted")
 }
 
+// getArticleCoverImage is a handler function to get the cover image of an article
+func getArticleCoverImage(w http.ResponseWriter, r *http.Request) {
+	// Parse the article id from the URL
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	// Check if the article exists
+	exists, err := articleExists(id)
+	if err != nil {
+		log.Printf("%v: get article cover image articleExists(id): %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if !*exists {
+		log.Printf("%v: get article cover image articleExists(id): %v", r.URL, *exists)
+		response.Res(w, "error", http.StatusBadRequest, "Cannot get cover image of non existent article")
+		return
+	}
+
+	// Open a connection to the database
+	database, err := db.DB()
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	// Prepare the SQL statement: select cover_image from articles where id = $1
+	stmt, err := database.Prepare("SELECT cover_image FROM articles WHERE id = $1")
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer stmt.Close()
+
+	// Execute the SQL statement
+	var coverImage []byte
+	err = stmt.QueryRow(id).Scan(&coverImage)
+	if err != nil {
+		// check if the error is no rows in result set
+		if err == sql.ErrNoRows {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusNotFound, "cover image not found")
+			return
+		}
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	// Send the response as cover image
+	w.Header().Set("Content-Type", "image/jpeg")
+	w.Header().Set("Content-Length", strconv.Itoa(len(coverImage)))
+	w.Write(coverImage)
+}
+
+// deleteArticle is a handler function to delete an article
 func deleteArticle(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id := params["id"]

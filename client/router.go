@@ -23,11 +23,27 @@ func ClientRouter(r *mux.Router) {
 	newsPostRouter.HandleFunc("/{id}/audio", getNewsPostAudio).Methods("GET")
 	newsPostRouter.HandleFunc("/{id}/cover_image", getNewsPostCoverImage).Methods("GET")
 
+	// article router
 	articleRouter := clientRouter.PathPrefix("/article").Subrouter()
+	// route to get article list by category
 	articleRouter.HandleFunc("/category/{category}", getArticleListByCategory).Methods("GET")
+	// route to get article list by related
 	articleRouter.HandleFunc("/related/{related}", getArticleListByRelated).Methods("GET")
+	// route to get all articles
 	articleRouter.HandleFunc("/list", getAllArticles).Methods("GET")
-	articleRouter.HandleFunc("/category", getArticleCategory).Methods("GET")
+	// route to get article category list
+	articleRouter.HandleFunc("/category/list", getArticleCategoryList).Methods("GET")
+
+	// article photos router
+	articlePhotosRouter := articleRouter.PathPrefix("/{id}/photos").Subrouter()
+	// route to get article photos
+	articlePhotosRouter.HandleFunc("", getArticlePhotos).Methods("GET")
+	// route to get article photo
+	articlePhotosRouter.HandleFunc("/{photo_id}", getArticlePhoto).Methods("GET")
+	// article photos router
+
+	// route to get article cover image
+	articleRouter.HandleFunc("/{id}/cover_image", getArticleCoverImage).Methods("GET")
 
 	bpPostRouter := clientRouter.PathPrefix("/business-promotional/post").Subrouter()
 	bpPostRouter.HandleFunc("/list", getBusinessPromotionalPosts).Methods("GET")
