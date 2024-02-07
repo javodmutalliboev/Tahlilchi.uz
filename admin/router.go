@@ -37,9 +37,14 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	// route to make news post completed field true/false
 	newsPostRouter.HandleFunc("/completed/{id}", middleware.Chain(newsPostCompleted, authPackage.AdminAuth())).Methods("PATCH")
 
+	// article router
 	articleRouter := adminRouter.PathPrefix("/article").Subrouter()
+	// route to add article category
 	articleRouter.HandleFunc("/category", middleware.Chain(addArticleCategory, authPackage.AdminAuth())).Methods("POST")
+	// route to get article category list
 	articleRouter.HandleFunc("/category", middleware.Chain(getArticleCategory, authPackage.AdminAuth())).Methods("GET")
+	// route to update article category
+	articleRouter.HandleFunc("/category/{id}", middleware.Chain(updateArticleCategory, authPackage.AdminAuth())).Methods("PATCH")
 	articleRouter.HandleFunc("", middleware.Chain(addArticle, authPackage.AdminAuth())).Methods("POST")
 	articleRouter.HandleFunc("/edit/{id}", middleware.Chain(editArticle, authPackage.AdminAuth())).Methods("PATCH")
 	// article photos router
@@ -48,6 +53,8 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	articlePhotosRouter.HandleFunc("/add", middleware.Chain(addArticlePhotos, authPackage.AdminAuth())).Methods("POST")
 	// route to get article photos
 	articlePhotosRouter.HandleFunc("", middleware.Chain(getArticlePhotos, authPackage.AdminAuth())).Methods("GET")
+	// route to get article photo
+	articlePhotosRouter.HandleFunc("/{photo_id}", middleware.Chain(getArticlePhoto, authPackage.AdminAuth())).Methods("GET")
 	// route to delete article photo
 	articlePhotosRouter.HandleFunc("/delete/{photo_id}", middleware.Chain(deleteArticlePhoto, authPackage.AdminAuth())).Methods("DELETE")
 	articleRouter.HandleFunc("/delete/{id}", middleware.Chain(deleteArticle, authPackage.AdminAuth())).Methods("DELETE")

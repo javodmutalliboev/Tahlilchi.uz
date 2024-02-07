@@ -1,6 +1,7 @@
 package admin
 
 import (
+	"database/sql"
 	"fmt"
 	"io"
 	"log"
@@ -14,6 +15,16 @@ import (
 	"github.com/lib/pq"
 )
 
+// ArticleCategory is a struct to hold article category data
+type ArticleCategory struct {
+	ID                  int    `json:"id"`
+	TitleLatin          string `json:"title_latin"`
+	DescriptionLatin    string `json:"description_latin"`
+	TitleCyrillic       string `json:"title_cyrillic"`
+	DescriptionCyrillic string `json:"description_cyrillic"`
+}
+
+// getArticleCategory is a handler function to get article categories from the database
 func getArticleCategory(w http.ResponseWriter, r *http.Request) {
 	database, err := db.DB()
 	if err != nil {
@@ -45,14 +56,110 @@ func getArticleCategory(w http.ResponseWriter, r *http.Request) {
 	response.Res(w, "success", http.StatusOK, articleCategoryList)
 }
 
-type ArticleCategory struct {
-	ID                  int    `json:"id"`
-	TitleLatin          string `json:"title_latin"`
-	DescriptionLatin    string `json:"description_latin"`
-	TitleCyrillic       string `json:"title_cyrillic"`
-	DescriptionCyrillic string `json:"description_cyrillic"`
+// updateArticleCategory is a handler function to update an article category in the database
+func updateArticleCategory(w http.ResponseWriter, r *http.Request) {
+	// get id from url params
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	// check if the category exists
+	database, err := db.DB()
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	var exists bool
+	err = database.QueryRow("SELECT EXISTS(SELECT 1 FROM article_category WHERE id=$1)", id).Scan(&exists)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if !exists {
+		response.Res(w, "error", http.StatusBadRequest, "Category does not exist")
+		return
+	}
+
+	// Parse the form
+	err = r.ParseForm()
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusBadRequest, "form parse error")
+		return
+	}
+
+	// title_latin
+	titleLatin := r.FormValue("title_latin")
+	if titleLatin != "" {
+		sqlStatement := `
+			UPDATE article_category
+			SET title_latin = $1
+			WHERE id = $2;
+		`
+		_, err = database.Exec(sqlStatement, titleLatin, id)
+		if err != nil {
+			log.Printf("%v: writing title_latin into db: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+	}
+
+	// description_latin
+	descriptionLatin := r.FormValue("description_latin")
+	if descriptionLatin != "" {
+		sqlStatement := `
+			UPDATE article_category
+			SET description_latin = $1
+			WHERE id = $2;
+		`
+		_, err = database.Exec(sqlStatement, descriptionLatin, id)
+		if err != nil {
+			log.Printf("%v: writing description_latin into db: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+	}
+
+	// title_cyrillic
+	titleCyrillic := r.FormValue("title_cyrillic")
+	if titleCyrillic != "" {
+		sqlStatement := `
+			UPDATE article_category
+			SET title_cyrillic = $1
+			WHERE id = $2;
+		`
+		_, err = database.Exec(sqlStatement, titleCyrillic, id)
+		if err != nil {
+			log.Printf("%v: writing title_cyrillic into db: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+	}
+
+	// description_cyrillic
+	descriptionCyrillic := r.FormValue("description_cyrillic")
+	if descriptionCyrillic != "" {
+		sqlStatement := `
+			UPDATE article_category
+			SET description_cyrillic = $1
+			WHERE id = $2;
+		`
+		_, err = database.Exec(sqlStatement, descriptionCyrillic, id)
+		if err != nil {
+			log.Printf("%v: writing description_cyrillic into db: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+	}
+
+	response.Res(w, "success", http.StatusOK, "Category updated")
 }
 
+// addArticleCategory is a handler function to add a new article category to the database
 func addArticleCategory(w http.ResponseWriter, r *http.Request) {
 	db, err := db.DB()
 	if err != nil {
@@ -751,6 +858,65 @@ func getArticlePhotos(w http.ResponseWriter, r *http.Request) {
 	}
 	// Send the response
 	response.Res(w, "success", http.StatusOK, photos)
+}
+
+// getArticlePhoto is a handler function to get a photo of an article
+func getArticlePhoto(w http.ResponseWriter, r *http.Request) {
+	// Parse the article id from the URL
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	// Check if the article exists
+	exists, err := articleExists(id)
+	if err != nil {
+		log.Printf("%v: get article photo articleExists(id): %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if !*exists {
+		log.Printf("%v: get article photo articleExists(id): %v", r.URL, *exists)
+		response.Res(w, "error", http.StatusBadRequest, "Cannot get photo of non existent article")
+		return
+	}
+
+	// Parse the photo id from the URL
+	photoID := vars["photo_id"]
+
+	// Open a connection to the database
+	database, err := db.DB()
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	// Prepare the SQL statement: select file from article_photos where article = $1 and id = $2
+	stmt, err := database.Prepare("SELECT file FROM article_photos WHERE article = $1 AND id = $2")
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer stmt.Close()
+
+	// Execute the SQL statement
+	var photo []byte
+	err = stmt.QueryRow(id, photoID).Scan(&photo)
+	if err != nil {
+		// check if the error is no rows in result set
+		if err == sql.ErrNoRows {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusNotFound, "photo not found")
+			return
+		}
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	// Send the response
+	response.Res(w, "success", http.StatusOK, photo)
 }
 
 // deleteArticlePhoto is a handler function to delete a photo of an article
