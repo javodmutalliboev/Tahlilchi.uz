@@ -15,11 +15,18 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	forgotPasswordRouter.HandleFunc("/i-code", forgotPasswordICode).Methods("POST")
 	forgotPasswordRouter.HandleFunc("/new-password", forgotPasswordNewPassword).Methods("POST")
 
+	// news router
 	newsRouter := adminRouter.PathPrefix("/news").Subrouter()
+	// route to add news category
 	newsRouter.HandleFunc("/category", middleware.Chain(addCategory, authPackage.AdminAuth())).Methods("POST")
+	// route to get news category list
 	newsRouter.HandleFunc("/category", middleware.Chain(getCategoryList, authPackage.AdminAuth())).Methods("GET")
+	// route to add news subcategory
 	newsRouter.HandleFunc("/subcategory", middleware.Chain(addSubcategory, authPackage.AdminAuth())).Methods("POST")
+	// route to get news subcategory list
 	newsRouter.HandleFunc("/subcategory", middleware.Chain(getSubCategoryList, authPackage.AdminAuth())).Methods("GET")
+	// route news/category/{id}/subcategory/list
+	newsRouter.HandleFunc("/category/{id}/subcategory/list", middleware.Chain(getSubCategoryListByCategory, authPackage.AdminAuth())).Methods("GET")
 	newsRouter.HandleFunc("/regions", middleware.Chain(addRegions, authPackage.AdminAuth())).Methods("POST")
 	newsRouter.HandleFunc("/post", middleware.Chain(addNewsPost, authPackage.AdminAuth())).Methods("POST")
 

@@ -118,6 +118,42 @@ func getSubCategoryList(w http.ResponseWriter, r *http.Request) {
 	response.Res(w, "success", http.StatusOK, categories)
 }
 
+// getSubCategoryListByCategory returns subcategories by category id
+func getSubCategoryListByCategory(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	categoryID := vars["id"]
+
+	database, err := db.DB()
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	rows, err := database.Query("SELECT * FROM news_subcategory WHERE category_id = $1 ORDER BY id", categoryID)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer rows.Close()
+
+	var categories []SubcategoryForGet
+	for rows.Next() {
+		var c SubcategoryForGet
+		err := rows.Scan(&c.ID, &c.CategoryID, &c.TitleLatin, &c.DescriptionLatin, &c.TitleCyrillic, &c.DescriptionCyrillic)
+		if err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+		categories = append(categories, c)
+	}
+
+	response.Res(w, "success", http.StatusOK, categories)
+}
+
 type SubcategoryForGet struct {
 	ID                  int    `json:"id"`
 	CategoryID          int    `json:"category_id"`
