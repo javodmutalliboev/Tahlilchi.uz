@@ -153,5 +153,16 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	// route to search in photo_gallery_photos table
 	searchRouter.HandleFunc("/photo-gallery/{id}/photos", middleware.Chain(searchPhotoGalleryPhotos, authPackage.AdminAuth())).Methods("GET")
 
+	// video news router: location: admin/video-news.go
+	videoNewsRouter := adminRouter.PathPrefix("/video-news").Subrouter()
+	// route to add video news
+	videoNewsRouter.HandleFunc("/add", middleware.Chain(addVideoNews, authPackage.AdminAuth())).Methods("POST")
+	// route to update video news
+	videoNewsRouter.HandleFunc("/update/{id}", middleware.Chain(updateVideoNews, authPackage.AdminAuth())).Methods("PATCH")
+	// route to delete video news
+	videoNewsRouter.HandleFunc("/delete/{id}", middleware.Chain(deleteVideoNews, authPackage.AdminAuth())).Methods("DELETE")
+	// route to get a video news list
+	videoNewsRouter.HandleFunc("/list", middleware.Chain(getVideoNewsList, authPackage.AdminAuth())).Methods("GET")
+
 	return adminRouter
 }
