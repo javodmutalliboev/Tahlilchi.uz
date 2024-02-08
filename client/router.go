@@ -80,4 +80,9 @@ func ClientRouter(r *mux.Router) {
 	searchRouter.HandleFunc("/photo-gallery", searchPhotoGallery).Methods("GET")
 	// route to search photo_gallery_photos
 	searchRouter.HandleFunc("/photo-gallery/{id}/photos", searchPhotoGalleryPhotos).Methods("GET")
+
+	// video news router
+	videoNewsRouter := clientRouter.PathPrefix("/video-news").Subrouter()
+	// route to get video news list
+	videoNewsRouter.HandleFunc("/list", getVideoNewsList).Methods("GET") // Go file path: client/video_news.go
 }
