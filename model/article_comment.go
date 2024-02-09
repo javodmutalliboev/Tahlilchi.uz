@@ -1,6 +1,10 @@
 package model
 
-import "Tahlilchi.uz/db"
+import (
+	"database/sql"
+
+	"Tahlilchi.uz/db"
+)
 
 // ArticleCommentListResponse is a struct to map the article comment list response
 type ArticleCommentListResponse struct {
@@ -66,7 +70,7 @@ func (ac *ArticleComment) AddArticleComment() error {
 }
 
 // GetArticleCommentList is a method to get the article comment list response from the database by article id, page and limit
-func (ac *ArticleComment) GetArticleCommentList(id, page, limit int) (ArticleCommentListResponse, error) {
+func (ac *ArticleComment) GetArticleCommentList(admin bool, id, page, limit int) (ArticleCommentListResponse, error) {
 	// create a new database connection
 	database, err := db.DB()
 	if err != nil {
@@ -75,53 +79,82 @@ func (ac *ArticleComment) GetArticleCommentList(id, page, limit int) (ArticleCom
 	// defer the close of the database connection
 	defer database.Close()
 
-	// get ArticleCommentList from the database
-	rows, err := database.Query("SELECT id, text, created_at FROM article_comments WHERE article = $1 AND approved = true ORDER BY id DESC LIMIT $2 OFFSET $3", id, limit, (page-1)*limit)
+	// declare rows variable using *sql.Rows
+	var rows *sql.Rows
+	// check if the admin is true
+	if admin {
+		// get the article comment list from the database
+		rows, err = database.Query("SELECT id, article, text, contact, created_at, approved FROM article_comments WHERE article = $1 ORDER BY id DESC LIMIT $2 OFFSET $3", id, limit, (page-1)*limit)
+	} else {
+		// get the article comment list from the database
+		rows, err = database.Query("SELECT id, text, created_at FROM article_comments WHERE article = $1 AND approved = true ORDER BY id DESC LIMIT $2 OFFSET $3", id, limit, (page-1)*limit)
+	}
+	// check if there is an error
 	if err != nil {
 		return ArticleCommentListResponse{}, err
 	}
 	// defer the close of the rows
 	defer rows.Close()
 
-	// create a new ArticleCommentListResponse
-	acr := ArticleCommentListResponse{}
-	// create a new ArticleCommentList
-	acs := []ArticleComment{}
-	// iterate over the rows
+	// create a ner article comment slice using the ArticleComment struct
+	var acs []ArticleComment
+	// iterate through the rows
 	for rows.Next() {
-		// create a new ArticleComment
-		ac := ArticleComment{}
-		// scan the rows to the ArticleComment
-		err = rows.Scan(&ac.ID, &ac.Text, &ac.CreatedAt)
+		// create a new article comment
+		var ac ArticleComment
+		// check if the admin is true
+		if admin {
+			// scan the article comment data from the rows
+			err = rows.Scan(&ac.ID, &ac.Article, &ac.Text, &ac.Contact, &ac.CreatedAt, &ac.Approved)
+		} else {
+			// scan the article comment data from the rows
+			err = rows.Scan(&ac.ID, &ac.Text, &ac.CreatedAt)
+		}
+		// check if there is an error
 		if err != nil {
 			return ArticleCommentListResponse{}, err
 		}
-		// append the ArticleComment to the ArticleCommentList
+		// append the article comment to the article comment slice
 		acs = append(acs, ac)
 	}
-	// check if there is an error
+
+	// check error from rows
 	if err := rows.Err(); err != nil {
 		return ArticleCommentListResponse{}, err
 	}
 
-	// get the count of the ArticleCommentList
+	// create a new article comment list response
+	var acr ArticleCommentListResponse
+
+	// declare a variable to store the count of the article comments
 	var count int
-	err = database.QueryRow("SELECT COUNT(*) FROM article_comments WHERE article = $1 AND approved = true", id).Scan(&count)
+	// check if the admin is true
+	if admin {
+		// get the count of the article comments from the database
+		err = database.QueryRow("SELECT COUNT(*) FROM article_comments WHERE article = $1", id).Scan(&count)
+	} else {
+		// get the count of the article comments from the database
+		err = database.QueryRow("SELECT COUNT(*) FROM article_comments WHERE article = $1 AND approved = true", id).Scan(&count)
+	}
+	// check if there is an error
 	if err != nil {
 		return ArticleCommentListResponse{}, err
 	}
 
 	// check if the page is greater than 1
 	if page > 1 {
+		// set the previous to true
 		acr.Previous = true
 	}
-	// check if the count is greater than the page*limit
+	// check if the count is greater than the page multiplied by the limit
 	if count > page*limit {
+		// set the next to true
 		acr.Next = true
 	}
-	// set the ArticleCommentList to the ArticleCommentListResponse
+
+	// set the article comment list to the article comment list response
 	acr.ArticleCommentList = acs
 
-	// return the ArticleCommentListResponse
+	// return the article comment list response
 	return acr, nil
 }

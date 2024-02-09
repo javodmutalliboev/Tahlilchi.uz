@@ -70,7 +70,7 @@ func getArticleCommentList(w http.ResponseWriter, r *http.Request) {
 	// create a new article comment
 	ac := model.ArticleComment{} // Go file path: model/article_comment.go
 	// get the article comment list from the database
-	acs, err := ac.GetArticleCommentList(id, page, limit)
+	acs, err := ac.GetArticleCommentList(false, id, page, limit)
 	// check if there is an error
 	if err != nil {
 		// log the error

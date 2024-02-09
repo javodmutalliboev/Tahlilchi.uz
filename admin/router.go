@@ -175,5 +175,10 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	// route to get a video news list
 	videoNewsRouter.HandleFunc("/list", middleware.Chain(getVideoNewsList, authPackage.AdminAuth())).Methods("GET")
 
+	// article comment router
+	articleCommentRouter := articleRouter.PathPrefix("/{id}/comment").Subrouter()
+	// route to get article comment list
+	articleCommentRouter.HandleFunc("/list", middleware.Chain(getArticleCommentList, authPackage.AdminAuth())).Methods("GET") // Go file path: admin/article_comment.go
+
 	return adminRouter
 }
