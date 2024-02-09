@@ -158,3 +158,32 @@ func (ac *ArticleComment) GetArticleCommentList(admin bool, id, page, limit int)
 	// return the article comment list response
 	return acr, nil
 }
+
+// ApproveArticleComment is a method to approve an article comment in the database
+func (ac *ArticleComment) ApproveArticleComment(id, commentID int) error {
+	// create a new database connection
+	database, err := db.DB()
+	if err != nil {
+		return err
+	}
+	// defer the close of the database connection
+	defer database.Close()
+
+	// create a new transaction
+	tx, err := database.Begin()
+	if err != nil {
+		return err
+	}
+	// update the article comment in the database
+	_, err = tx.Exec("UPDATE article_comments SET approved = true WHERE article = $1 AND id = $2", id, commentID)
+	if err != nil {
+		return err
+	}
+	// commit the transaction
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	// return nil
+	return nil
+}
