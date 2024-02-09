@@ -1361,3 +1361,102 @@ func getRegions(w http.ResponseWriter, r *http.Request) {
 	// send a success response
 	response.Res(w, "success", http.StatusOK, regions)
 }
+
+// updateRegion is a route handler function to update a news region
+func updateRegion(w http.ResponseWriter, r *http.Request) {
+	// get the region id from the url parameters
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	// parse the request body
+	err := r.ParseForm()
+	if err != nil {
+		// log the error
+		toolkit.LogError(r, err)
+		// send an error response
+		response.Res(w, "error", http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	// open a connection to the database
+	database, err := db.DB()
+	if err != nil {
+		// log the error
+		toolkit.LogError(r, err)
+		// send an error response
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	// check news region existence
+	var exists bool
+	err = database.QueryRow("SELECT EXISTS(SELECT 1 FROM news_regions WHERE id=$1)", id).Scan(&exists)
+	if err != nil {
+		// log the error
+		toolkit.LogError(r, err)
+		// send an error response
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if !exists {
+		response.Res(w, "error", http.StatusBadRequest, "news region does not exist")
+		return
+	}
+
+	// name_latin
+	nameLatin := r.FormValue("name_latin")
+	if nameLatin != "" {
+		_, err = database.Exec("UPDATE news_regions SET name_latin = $1 WHERE id = $2", nameLatin, id)
+		if err != nil {
+			// log the error
+			toolkit.LogError(r, err)
+			// send an error response
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+	}
+
+	// description_latin
+	descriptionLatin := r.FormValue("description_latin")
+	if descriptionLatin != "" {
+		_, err = database.Exec("UPDATE news_regions SET description_latin = $1 WHERE id = $2", descriptionLatin, id)
+		if err != nil {
+			// log the error
+			toolkit.LogError(r, err)
+			// send an error response
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+	}
+
+	// name_cyrillic
+	nameCyrillic := r.FormValue("name_cyrillic")
+	if nameCyrillic != "" {
+		_, err = database.Exec("UPDATE news_regions SET name_cyrillic = $1 WHERE id = $2", nameCyrillic, id)
+		if err != nil {
+			// log the error
+			toolkit.LogError(r, err)
+			// send an error response
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+	}
+
+	// description_cyrillic
+	descriptionCyrillic := r.FormValue("description_cyrillic")
+	if descriptionCyrillic != "" {
+		_, err = database.Exec("UPDATE news_regions SET description_cyrillic = $1 WHERE id = $2", descriptionCyrillic, id)
+		if err != nil {
+			// log the error
+			toolkit.LogError(r, err)
+			// send an error response
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+	}
+
+	// send a success response
+	response.Res(w, "success", http.StatusOK, "news region updated")
+}

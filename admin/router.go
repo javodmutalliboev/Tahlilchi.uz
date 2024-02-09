@@ -35,6 +35,8 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	newsRegionRouter := newsRouter.PathPrefix("/regions").Subrouter()
 	// route to get news region list
 	newsRegionRouter.HandleFunc("", middleware.Chain(getRegions, authPackage.AdminAuth())).Methods("GET") // Go file path: admin/news.go
+	// route to update news region
+	newsRegionRouter.HandleFunc("/{id}", middleware.Chain(updateRegion, authPackage.AdminAuth())).Methods("PATCH") // Go file path: admin/news.go
 
 	newsPostRouter := newsRouter.PathPrefix("/post").Subrouter()
 	newsPostRouter.HandleFunc("/edit/{id}", middleware.Chain(editNewsPost, authPackage.AdminAuth())).Methods("PATCH")
