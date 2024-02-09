@@ -14,6 +14,7 @@ import (
 
 	"Tahlilchi.uz/db"
 	"Tahlilchi.uz/response"
+	"Tahlilchi.uz/toolkit"
 	"github.com/gorilla/mux"
 	"github.com/lib/pq"
 )
@@ -240,6 +241,7 @@ func addSubcategory(w http.ResponseWriter, r *http.Request) {
 }
 
 type Region struct {
+	ID                  int    `json:"id"`
 	NameLatin           string `json:"name_latin"`
 	DescriptionLatin    string `json:"description_latin,omitempty"`
 	NameCyrillic        string `json:"name_cyrillic"`
@@ -1314,4 +1316,48 @@ func getNewsPostCoverImage(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "image/jpeg")
 	w.Write(CoverImage)
+}
+
+// getRegions is a route handler function to get all news regions
+func getRegions(w http.ResponseWriter, r *http.Request) {
+	database, err := db.DB()
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	// create a slice to hold the regions
+	var regions []Region
+
+	// query the database
+	rows, err := database.Query("SELECT * FROM news_regions order by id")
+	if err != nil {
+		// log the error
+		toolkit.LogError(r, err)
+		// send an error response
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer rows.Close()
+
+	// iterate through the rows
+	for rows.Next() {
+		// create a region variable
+		var region Region
+		// scan the row into the region variable
+		if err := rows.Scan(&region.ID, &region.NameLatin, &region.DescriptionLatin, &region.NameCyrillic, &region.DescriptionCyrillic); err != nil {
+			// log the error
+			toolkit.LogError(r, err)
+			// send an error response
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+		// append the region to the regions slice
+		regions = append(regions, region)
+	}
+
+	// send a success response
+	response.Res(w, "success", http.StatusOK, regions)
 }

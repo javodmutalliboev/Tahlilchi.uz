@@ -27,8 +27,14 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	newsRouter.HandleFunc("/subcategory", middleware.Chain(getSubCategoryList, authPackage.AdminAuth())).Methods("GET")
 	// route news/category/{id}/subcategory/list
 	newsRouter.HandleFunc("/category/{id}/subcategory/list", middleware.Chain(getSubCategoryListByCategory, authPackage.AdminAuth())).Methods("GET")
+	// route to add news region
 	newsRouter.HandleFunc("/regions", middleware.Chain(addRegions, authPackage.AdminAuth())).Methods("POST")
 	newsRouter.HandleFunc("/post", middleware.Chain(addNewsPost, authPackage.AdminAuth())).Methods("POST")
+
+	// news region router
+	newsRegionRouter := newsRouter.PathPrefix("/regions").Subrouter()
+	// route to get news region list
+	newsRegionRouter.HandleFunc("", middleware.Chain(getRegions, authPackage.AdminAuth())).Methods("GET") // Go file path: admin/news.go
 
 	newsPostRouter := newsRouter.PathPrefix("/post").Subrouter()
 	newsPostRouter.HandleFunc("/edit/{id}", middleware.Chain(editNewsPost, authPackage.AdminAuth())).Methods("PATCH")
@@ -179,6 +185,7 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	articleCommentRouter := articleRouter.PathPrefix("/{id}/comment").Subrouter()
 	// route to get article comment list
 	articleCommentRouter.HandleFunc("/list", middleware.Chain(getArticleCommentList, authPackage.AdminAuth())).Methods("GET") // Go file path: admin/article_comment.go
+	// route approve/disapprove article comment
 
 	return adminRouter
 }
