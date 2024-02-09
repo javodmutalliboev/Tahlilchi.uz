@@ -90,4 +90,6 @@ func ClientRouter(r *mux.Router) {
 	articleCommentRouter := clientRouter.PathPrefix("/article/comment").Subrouter()
 	// route to add article comment
 	articleCommentRouter.HandleFunc("", addArticleComment).Methods("POST") // Go file path: client/article_comment.go
+	// route to get article comment list
+	articleCommentRouter.HandleFunc("/{id}", getArticleCommentList).Methods("GET") // Go file path: client/article_comment.go
 }
