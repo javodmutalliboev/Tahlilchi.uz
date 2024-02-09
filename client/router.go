@@ -85,4 +85,9 @@ func ClientRouter(r *mux.Router) {
 	videoNewsRouter := clientRouter.PathPrefix("/video-news").Subrouter()
 	// route to get video news list
 	videoNewsRouter.HandleFunc("/list", getVideoNewsList).Methods("GET") // Go file path: client/video_news.go
+
+	// article comment router
+	articleCommentRouter := clientRouter.PathPrefix("/article/comment").Subrouter()
+	// route to add article comment
+	articleCommentRouter.HandleFunc("", addArticleComment).Methods("POST") // Go file path: client/article_comment.go
 }
