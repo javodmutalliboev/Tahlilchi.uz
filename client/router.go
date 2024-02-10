@@ -97,4 +97,6 @@ func ClientRouter(r *mux.Router) {
 	eNewspaperCommentRouter := eNewspaperRouter.PathPrefix("/{id}/comment").Subrouter()
 	// route to add e-newspaper comment
 	eNewspaperCommentRouter.HandleFunc("", addENewspaperComment).Methods("POST") // Go file path: client/e_newspaper_comment.go
+	// route to get e-newspaper comment list
+	eNewspaperCommentRouter.HandleFunc("/list", getENewspaperCommentList).Methods("GET") // Go file path: client/e_newspaper_comment.go
 }

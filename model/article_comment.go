@@ -16,7 +16,7 @@ type ArticleCommentListResponse struct {
 // ArticleComment is a struct to map the article comment data
 type ArticleComment struct {
 	ID        int    `json:"id"`
-	Article   int    `json:"article" validate:"required"`
+	Article   int    `json:"article"`
 	Text      string `json:"text" validate:"required"`
 	Contact   string `json:"contact"`
 	CreatedAt string `json:"created_at"`
@@ -24,7 +24,7 @@ type ArticleComment struct {
 }
 
 // AddArticleComment is a method to add an article comment to the database
-func (ac *ArticleComment) AddArticleComment() error {
+func (ac *ArticleComment) AddArticleComment(article int) error {
 	// create a new database connection
 	database, err := db.DB()
 	if err != nil {
@@ -47,7 +47,7 @@ func (ac *ArticleComment) AddArticleComment() error {
 	defer stmt.Close()
 
 	// execute the insert statement
-	err = stmt.QueryRow(ac.Article, ac.Text).Scan(&ac.ID)
+	err = stmt.QueryRow(article, ac.Text).Scan(&ac.ID)
 	if err != nil {
 		return err
 	}
@@ -96,7 +96,7 @@ func (ac *ArticleComment) GetArticleCommentList(admin bool, id, page, limit int)
 	// defer the close of the rows
 	defer rows.Close()
 
-	// create a ner article comment slice using the ArticleComment struct
+	// create a new article comment slice using the ArticleComment struct
 	var acs []ArticleComment
 	// iterate through the rows
 	for rows.Next() {
