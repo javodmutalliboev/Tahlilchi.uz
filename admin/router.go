@@ -21,6 +21,10 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	newsRouter.HandleFunc("/category", middleware.Chain(addCategory, authPackage.AdminAuth())).Methods("POST")
 	// route to get news category list
 	newsRouter.HandleFunc("/category", middleware.Chain(getCategoryList, authPackage.AdminAuth())).Methods("GET")
+	// route to update news category
+	newsRouter.HandleFunc("/category/{id}", middleware.Chain(updateCategory, authPackage.AdminAuth())).Methods("PATCH") // Go file path: admin/news.go
+	// route to delete news category
+	newsRouter.HandleFunc("/category/{id}", middleware.Chain(deleteCategory, authPackage.AdminAuth())).Methods("DELETE") // Go file path: admin/news.go
 	// route to add news subcategory
 	newsRouter.HandleFunc("/subcategory", middleware.Chain(addSubcategory, authPackage.AdminAuth())).Methods("POST")
 	// route to get news subcategory list
@@ -37,6 +41,8 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	newsRegionRouter.HandleFunc("", middleware.Chain(getRegions, authPackage.AdminAuth())).Methods("GET") // Go file path: admin/news.go
 	// route to update news region
 	newsRegionRouter.HandleFunc("/{id}", middleware.Chain(updateRegion, authPackage.AdminAuth())).Methods("PATCH") // Go file path: admin/news.go
+	// route to delete news region
+	newsRegionRouter.HandleFunc("/{id}", middleware.Chain(deleteRegion, authPackage.AdminAuth())).Methods("DELETE") // Go file path: admin/news.go
 
 	newsPostRouter := newsRouter.PathPrefix("/post").Subrouter()
 	newsPostRouter.HandleFunc("/edit/{id}", middleware.Chain(editNewsPost, authPackage.AdminAuth())).Methods("PATCH")

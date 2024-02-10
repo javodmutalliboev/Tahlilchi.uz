@@ -1460,3 +1460,206 @@ func updateRegion(w http.ResponseWriter, r *http.Request) {
 	// send a success response
 	response.Res(w, "success", http.StatusOK, "news region updated")
 }
+
+// deleteRegion is a route handler function to delete a news region
+func deleteRegion(w http.ResponseWriter, r *http.Request) {
+	// get the region id from the url parameters
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	// open a connection to the database
+	database, err := db.DB()
+	if err != nil {
+		// log the error
+		toolkit.LogError(r, err)
+		// send an error response
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	// check news region existence
+	var exists bool
+	err = database.QueryRow("SELECT EXISTS(SELECT 1 FROM news_regions WHERE id=$1)", id).Scan(&exists)
+	if err != nil {
+		// log the error
+		toolkit.LogError(r, err)
+		// send an error response
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if !exists {
+		response.Res(w, "error", http.StatusBadRequest, "news region does not exist")
+		return
+	}
+
+	// delete the news region
+	_, err = database.Exec("DELETE FROM news_regions WHERE id = $1", id)
+	if err != nil {
+		// log the error
+		toolkit.LogError(r, err)
+		// check err is constraint violation
+		if strings.Contains(err.Error(), "violates foreign key constraint") {
+			response.Res(w, "error", http.StatusBadRequest, "news region is in use")
+			return
+		}
+		// send an error response
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	// send a success response
+	response.Res(w, "success", http.StatusOK, "news region deleted")
+}
+
+// updateCategory is a route handler function to update a news category
+func updateCategory(w http.ResponseWriter, r *http.Request) {
+	// get the category id from the url parameters
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	// parse the request body
+	err := r.ParseForm()
+	if err != nil {
+		// log the error
+		toolkit.LogError(r, err)
+		// send an error response
+		response.Res(w, "error", http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	// open a connection to the database
+	database, err := db.DB()
+	if err != nil {
+		// log the error
+		toolkit.LogError(r, err)
+		// send an error response
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	// check news category existence
+	var exists bool
+	err = database.QueryRow("SELECT EXISTS(SELECT 1 FROM news_category WHERE id=$1)", id).Scan(&exists)
+	if err != nil {
+		// log the error
+		toolkit.LogError(r, err)
+		// send an error response
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if !exists {
+		response.Res(w, "error", http.StatusBadRequest, "news category does not exist")
+		return
+	}
+
+	// title_latin
+	titleLatin := r.FormValue("title_latin")
+	if titleLatin != "" {
+		_, err = database.Exec("UPDATE news_category SET title_latin = $1 WHERE id = $2", titleLatin, id)
+		if err != nil {
+			// log the error
+			toolkit.LogError(r, err)
+			// send an error response
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+	}
+
+	// description_latin
+	descriptionLatin := r.FormValue("description_latin")
+	if descriptionLatin != "" {
+		_, err = database.Exec("UPDATE news_category SET description_latin = $1 WHERE id = $2", descriptionLatin, id)
+		if err != nil {
+			// log the error
+			toolkit.LogError(r, err)
+			// send an error response
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+	}
+
+	// title_cyrillic
+	titleCyrillic := r.FormValue("title_cyrillic")
+	if titleCyrillic != "" {
+		_, err = database.Exec("UPDATE news_category SET title_cyrillic = $1 WHERE id = $2", titleCyrillic, id)
+		if err != nil {
+			// log the error
+			toolkit.LogError(r, err)
+			// send an error response
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+	}
+
+	// description_cyrillic
+	descriptionCyrillic := r.FormValue("description_cyrillic")
+	if descriptionCyrillic != "" {
+		_, err = database.Exec("UPDATE news_category SET description_cyrillic = $1 WHERE id = $2", descriptionCyrillic, id)
+		if err != nil {
+			// log the error
+			toolkit.LogError(r, err)
+			// send an error response
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+	}
+
+	// send a success response
+	response.Res(w, "success", http.StatusOK, "news category updated")
+}
+
+// deleteCategory is a route handler function to delete a news category
+func deleteCategory(w http.ResponseWriter, r *http.Request) {
+	// get the category id from the url parameters
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	// open a connection to the database
+	database, err := db.DB()
+	if err != nil {
+		// log the error
+		toolkit.LogError(r, err)
+		// send an error response
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	// check news category existence
+	var exists bool
+	err = database.QueryRow("SELECT EXISTS(SELECT 1 FROM news_category WHERE id=$1)", id).Scan(&exists)
+	if err != nil {
+		// log the error
+		toolkit.LogError(r, err)
+		// send an error response
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if !exists {
+		response.Res(w, "error", http.StatusBadRequest, "news category does not exist")
+		return
+	}
+
+	// delete the news category
+	_, err = database.Exec("DELETE FROM news_category WHERE id = $1", id)
+	if err != nil {
+		// log the error
+		toolkit.LogError(r, err)
+		// check err is constraint violation
+		if strings.Contains(err.Error(), "violates foreign key constraint") {
+			response.Res(w, "error", http.StatusBadRequest, "news category is in use")
+			return
+		}
+		// send an error response
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	// send a success response
+	response.Res(w, "success", http.StatusOK, "news category deleted")
+}
