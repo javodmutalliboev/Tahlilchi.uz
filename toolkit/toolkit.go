@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/gorilla/mux"
 )
 
 func SliceToString(data []string) string {
@@ -11,8 +13,8 @@ func SliceToString(data []string) string {
 }
 
 func GetID(r *http.Request) (int, error) {
-	id := r.URL.Query().Get("id")
-	// convert the id to int
+	// get the id route variable from the request url
+	id := mux.Vars(r)["id"]
 	idInt, err := strconv.Atoi(id)
 	// check if there is an error
 	if err != nil {
