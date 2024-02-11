@@ -196,5 +196,12 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	// route approve/disapprove article comment
 	articleCommentRouter.HandleFunc("/approve/{comment_id}", middleware.Chain(approveArticleComment, authPackage.AdminAuth())).Methods("PATCH") // Go file path: admin/article_comment.go
 
+	// news post comment router
+	newsPostCommentRouter := newsPostRouter.PathPrefix("/{id}/comment").Subrouter()
+	// route to get news post comment list
+	newsPostCommentRouter.HandleFunc("/list", middleware.Chain(getNewsPostCommentList, authPackage.AdminAuth())).Methods("GET") // Go file path: admin/news_post_comment.go
+	// route approve/disapprove news post comment
+	newsPostCommentRouter.HandleFunc("/approve/{comment_id}", middleware.Chain(approveNewsPostComment, authPackage.AdminAuth())).Methods("PATCH") // Go file path: admin/news_post_comment.go
+
 	return adminRouter
 }

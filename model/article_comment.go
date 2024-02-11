@@ -174,8 +174,8 @@ func (ac *ArticleComment) ApproveArticleComment(id, commentID int) error {
 	if err != nil {
 		return err
 	}
-	// update the article comment in the database
-	_, err = tx.Exec("UPDATE article_comments SET approved = true WHERE article = $1 AND id = $2", id, commentID)
+	// update the article comment approved column: toggle value.
+	_, err = tx.Exec("UPDATE article_comments SET approved = NOT approved WHERE article = $1 AND id = $2", id, commentID)
 	if err != nil {
 		return err
 	}
