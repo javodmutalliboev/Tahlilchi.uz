@@ -520,7 +520,7 @@ func addNewsPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get tags if they exist
-	tags, ok := r.Form["tags"]
+	tags, ok := r.Form["tags[]"]
 	if !ok {
 		// If tags don't exist, use an empty array
 		tags = []string{}
@@ -892,7 +892,7 @@ func editNewsPost(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if tags, ok := r.Form["tags"]; ok {
+	if tags, ok := r.Form["tags[]"]; ok {
 		tagsString := "{" + strings.Join(tags, ",") + "}"
 		sqlStatement := `
 			UPDATE news_posts
