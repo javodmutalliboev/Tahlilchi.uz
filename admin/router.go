@@ -200,6 +200,13 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	// route approve/disapprove article comment
 	articleCommentRouter.HandleFunc("/approve/{comment_id}", middleware.Chain(approveArticleComment, authPackage.AdminAuth())).Methods("PATCH") // Go file path: admin/article_comment.go
 
+	// e_newspaper comment router
+	eNewspaperCommentRouter := eNewspaperRouter.PathPrefix("/{id}/comment").Subrouter()
+	// route to get e-newspaper comment list
+	eNewspaperCommentRouter.HandleFunc("/list", middleware.Chain(getENewspaperCommentList, authPackage.AdminAuth())).Methods("GET") // Go file path: admin/e_newspaper_comment.go
+	// route approve/disapprove e-newspaper comment
+	eNewspaperCommentRouter.HandleFunc("/approve/{comment_id}", middleware.Chain(approveENewspaperComment, authPackage.AdminAuth())).Methods("PATCH") // Go file path: admin/e_newspaper_comment.go
+
 	// news post comment router
 	newsPostCommentRouter := newsPostRouter.PathPrefix("/{id}/comment").Subrouter()
 	// route to get news post comment list

@@ -81,7 +81,7 @@ func getENewspaperCommentList(w http.ResponseWriter, r *http.Request) {
 	// create a new e-newspaper comment
 	enc := model.ENewspaperComment{} // Go file path: model/e_newspaper_comment.go
 	// get the e-newspaper comment list from the database
-	encListRes, err := enc.GetENewspaperCommentList(false, id, page, limit)
+	encListRes, err := enc.GetENewspaperCommentListResponse(false, id, page, limit)
 	// check if there is an error
 	if err != nil {
 		// log the error

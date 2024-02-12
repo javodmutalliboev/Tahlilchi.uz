@@ -84,10 +84,10 @@ func (enc *ENewspaperComment) AddENewspaperComment(e_newspaper int) error {
 	return nil
 }
 
-// GetENewspaperCommentList is a method to get the e-newspaper comment list from the database
+// GetENewspaperCommentListResponse is a method to get the e-newspaper comment list from the database
 // It takes a boolean representing if the user is an admin, an int representing the id of the e-newspaper, an int representing the page and an int representing the limit
 // It returns an ENewspaperCommentListResponse and an error if any
-func (enc *ENewspaperComment) GetENewspaperCommentList(admin bool, id, page, limit int) (ENewspaperCommentListResponse, error) {
+func (enc *ENewspaperComment) GetENewspaperCommentListResponse(admin bool, id, page, limit int) (ENewspaperCommentListResponse, error) {
 	// create a new database connection
 	database, err := db.DB()
 	if err != nil {
@@ -174,4 +174,35 @@ func (enc *ENewspaperComment) GetENewspaperCommentList(admin bool, id, page, lim
 
 	// return the e-newspaper comment list response and nil
 	return encListRes, nil
+}
+
+// ApproveENewspaperComment is a method to approve/disapprove an e-newspaper comment in the database
+// It takes an int representing the id of the e-newspaper and an int representing the id of the e-newspaper comment
+// It returns an error if any
+func (enc *ENewspaperComment) ApproveENewspaperComment(e_newspaper, commentID int) error {
+	// create a new database connection
+	database, err := db.DB()
+	if err != nil {
+		return err
+	}
+	// defer the close of the database connection
+	defer database.Close()
+
+	// create a new transaction
+	tx, err := database.Begin()
+	if err != nil {
+		return err
+	}
+	// toggle approved column
+	_, err = tx.Exec("UPDATE e_newspaper_comments SET approved = NOT approved WHERE e_newspaper = $1 AND id = $2", e_newspaper, commentID)
+	if err != nil {
+		return err
+	}
+	// commit the transaction
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+	// return nil
+	return nil
 }
