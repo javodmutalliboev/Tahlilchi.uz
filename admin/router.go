@@ -29,6 +29,10 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	newsRouter.HandleFunc("/subcategory", middleware.Chain(addSubcategory, authPackage.AdminAuth())).Methods("POST")
 	// route to get news subcategory list
 	newsRouter.HandleFunc("/subcategory", middleware.Chain(getSubCategoryList, authPackage.AdminAuth())).Methods("GET")
+	// route to update news subcategory
+	newsRouter.HandleFunc("/category/{id}/subcategory/{sub_id}", middleware.Chain(updateSubCategory, authPackage.AdminAuth())).Methods("PATCH")
+	// route to delete news subcategory
+	newsRouter.HandleFunc("/category/{id}/subcategory/{sub_id}", middleware.Chain(deleteSubCategory, authPackage.AdminAuth())).Methods("DELETE")
 	// route news/category/{id}/subcategory/list
 	newsRouter.HandleFunc("/category/{id}/subcategory/list", middleware.Chain(getSubCategoryListByCategory, authPackage.AdminAuth())).Methods("GET")
 	// route to add news region

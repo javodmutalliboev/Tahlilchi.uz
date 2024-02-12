@@ -119,6 +119,149 @@ func getSubCategoryList(w http.ResponseWriter, r *http.Request) {
 	response.Res(w, "success", http.StatusOK, categories)
 }
 
+// updateSubCategory is a route handler function to update subcategory by category id and subcategory id
+func updateSubCategory(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	category_id, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		// log the error
+		toolkit.LogError(r, err)
+		// send the error response
+		response.Res(w, "error", http.StatusBadRequest, "invalid id")
+		return
+	}
+
+	id, err := strconv.Atoi(vars["sub_id"])
+	if err != nil {
+		// log the error
+		toolkit.LogError(r, err)
+		// send the error response
+		response.Res(w, "error", http.StatusBadRequest, "invalid sub_id")
+		return
+	}
+
+	// parse the request body
+	var subcategory Subcategory
+	err = json.NewDecoder(r.Body).Decode(&subcategory)
+	if err != nil {
+		// log the error
+		toolkit.LogError(r, err)
+		// send the error response
+		response.Res(w, "error", http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	// open a connection to the database
+	database, err := db.DB()
+	if err != nil {
+		// log the error
+		toolkit.LogError(r, err)
+		// send the error response
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	// defer the close of the database connection
+	defer database.Close()
+
+	// title_latin
+	if subcategory.TitleLatin != "" {
+		_, err = database.Exec("UPDATE news_subcategory SET title_latin = $1 WHERE id = $2 AND category_id = $3", subcategory.TitleLatin, id, category_id)
+		if err != nil {
+			// log the error
+			toolkit.LogError(r, err)
+			// send the error response
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+	}
+
+	// description_latin
+	if subcategory.DescriptionLatin != "" {
+		_, err = database.Exec("UPDATE news_subcategory SET description_latin = $1 WHERE id = $2 AND category_id = $3", subcategory.DescriptionLatin, id, category_id)
+		if err != nil {
+			// log the error
+			toolkit.LogError(r, err)
+			// send the error response
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+	}
+
+	// title_cyrillic
+	if subcategory.TitleCyrillic != "" {
+		_, err = database.Exec("UPDATE news_subcategory SET title_cyrillic = $1 WHERE id = $2 AND category_id = $3", subcategory.TitleCyrillic, id, category_id)
+		if err != nil {
+			// log the error
+			toolkit.LogError(r, err)
+			// send the error response
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+	}
+
+	// description_cyrillic
+	if subcategory.DescriptionCyrillic != "" {
+		_, err = database.Exec("UPDATE news_subcategory SET description_cyrillic = $1 WHERE id = $2 AND category_id = $3", subcategory.DescriptionCyrillic, id, category_id)
+		if err != nil {
+			// log the error
+			toolkit.LogError(r, err)
+			// send the error response
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+	}
+
+	// send the success response
+	response.Res(w, "success", http.StatusOK, "subcategory updated")
+}
+
+// deleteSubCategory is a route handler function to delete subcategory by category id and subcategory id
+func deleteSubCategory(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	category_id, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		// log the error
+		toolkit.LogError(r, err)
+		// send the error response
+		response.Res(w, "error", http.StatusBadRequest, "invalid id")
+		return
+	}
+
+	id, err := strconv.Atoi(vars["sub_id"])
+	if err != nil {
+		// log the error
+		toolkit.LogError(r, err)
+		// send the error response
+		response.Res(w, "error", http.StatusBadRequest, "invalid sub_id")
+		return
+	}
+
+	// open a connection to the database
+	database, err := db.DB()
+	if err != nil {
+		// log the error
+		toolkit.LogError(r, err)
+		// send the error response
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	// defer the close of the database connection
+	defer database.Close()
+
+	// delete the subcategory
+	_, err = database.Exec("DELETE FROM news_subcategory WHERE id = $1 AND category_id = $2", id, category_id)
+	if err != nil {
+		// log the error
+		toolkit.LogError(r, err)
+		// send the error response
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	// send the success response
+	response.Res(w, "success", http.StatusOK, "subcategory deleted")
+}
+
 // getSubCategoryListByCategory returns subcategories by category id
 func getSubCategoryListByCategory(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -200,6 +343,7 @@ func addCategory(w http.ResponseWriter, r *http.Request) {
 }
 
 type Subcategory struct {
+	ID                  int    `json:"id"`
 	CategoryID          int    `json:"category_id"`
 	TitleLatin          string `json:"title_latin"`
 	DescriptionLatin    string `json:"description_latin"`
