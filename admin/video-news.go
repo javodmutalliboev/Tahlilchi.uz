@@ -8,6 +8,7 @@ import (
 
 	"Tahlilchi.uz/model"
 	"Tahlilchi.uz/response"
+	"github.com/gorilla/mux"
 )
 
 // addVideoNews is a handler function for the admin router to handle the request to add a video news
@@ -36,7 +37,7 @@ func addVideoNews(w http.ResponseWriter, r *http.Request) {
 // updateVideoNews is a handler function for the admin router to handle the request to update a video news
 func updateVideoNews(w http.ResponseWriter, r *http.Request) {
 	// get id from the request url
-	id := r.URL.Query().Get("id")
+	id := mux.Vars(r)["id"]
 	// if the id is empty, return a bad request response
 	if id == "" {
 		http.Error(w, "id is required", http.StatusBadRequest)
@@ -66,7 +67,7 @@ func updateVideoNews(w http.ResponseWriter, r *http.Request) {
 // deleteVideoNews is a handler function for the admin router to handle the request to delete a video news
 func deleteVideoNews(w http.ResponseWriter, r *http.Request) {
 	// get id from the request url
-	id := r.URL.Query().Get("id")
+	id := mux.Vars(r)["id"]
 	// if the id is empty, return a bad request response
 	if id == "" {
 		http.Error(w, "id is required", http.StatusBadRequest)

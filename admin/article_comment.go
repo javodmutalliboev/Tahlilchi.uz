@@ -7,6 +7,7 @@ import (
 	"Tahlilchi.uz/model"
 	"Tahlilchi.uz/response"
 	"Tahlilchi.uz/toolkit"
+	"github.com/gorilla/mux"
 )
 
 // getArticleCommentList is a route handler function to get the article comment list response
@@ -68,7 +69,7 @@ func approveArticleComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// get the comment id from the request url
-	comment_id_str := r.URL.Query().Get("comment_id")
+	comment_id_str := mux.Vars(r)["comment_id"]
 	// convert the comment id to int
 	comment_id, err := strconv.Atoi(comment_id_str)
 	// check if there is an error

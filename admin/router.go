@@ -214,5 +214,12 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	// route approve/disapprove news post comment
 	newsPostCommentRouter.HandleFunc("/approve/{comment_id}", middleware.Chain(approveNewsPostComment, authPackage.AdminAuth())).Methods("PATCH") // Go file path: admin/news_post_comment.go
 
+	// video news comment router
+	videoNewsCommentRouter := videoNewsRouter.PathPrefix("/{id}/comment").Subrouter() // Go file path: admin/video_news_comment.go
+	// route to get video news comment list
+	videoNewsCommentRouter.HandleFunc("/list", middleware.Chain(getVideoNewsCommentList, authPackage.AdminAuth())).Methods("GET") // Go file path: admin/video_news_comment.go
+	// route approve/disapprove video news comment
+	videoNewsCommentRouter.HandleFunc("/approve/{comment_id}", middleware.Chain(approveVideoNewsComment, authPackage.AdminAuth())).Methods("PATCH") // Go file path: admin/video_news_comment.go
+
 	return adminRouter
 }

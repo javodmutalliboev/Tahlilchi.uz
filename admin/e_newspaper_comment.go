@@ -7,6 +7,7 @@ import (
 	"Tahlilchi.uz/model"
 	"Tahlilchi.uz/response"
 	"Tahlilchi.uz/toolkit"
+	"github.com/gorilla/mux"
 )
 
 // getENewspaperCommentList is a route handler function to get the e-newspaper comment list response
@@ -68,7 +69,7 @@ func approveENewspaperComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	comment_id_str := r.URL.Query().Get("comment_id")
+	comment_id_str := mux.Vars(r)["comment_id"]
 	comment_id, err := strconv.Atoi(comment_id_str)
 	if err != nil {
 		// log the error

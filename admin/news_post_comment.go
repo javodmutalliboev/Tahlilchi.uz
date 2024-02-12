@@ -7,6 +7,7 @@ import (
 	"Tahlilchi.uz/model"
 	"Tahlilchi.uz/response"
 	"Tahlilchi.uz/toolkit"
+	"github.com/gorilla/mux"
 )
 
 // getNewsPostCommentList is a route handler function to get a news post comment list response
@@ -65,7 +66,7 @@ func approveNewsPostComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	comment_id_str := r.URL.Query().Get("comment_id")
+	comment_id_str := mux.Vars(r)["comment_id"]
 	comment_id, err := strconv.Atoi(comment_id_str)
 	if err != nil {
 		// log the error
