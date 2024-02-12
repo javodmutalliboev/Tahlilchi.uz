@@ -430,7 +430,7 @@ func addRegions(w http.ResponseWriter, r *http.Request) {
 var re = regexp.MustCompile(`^(true|false)$`)
 
 func addNewsPost(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseMultipartForm(15 << 20) // Max memory 15MB
+	err := r.ParseMultipartForm(1 << 30) // Max memory 1GB
 	if err != nil {
 		log.Println(err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -448,7 +448,7 @@ func addNewsPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	photo, photo_header, err := r.FormFile("photo")
+	photo, _, err := r.FormFile("photo")
 	var photoForDB []byte
 	if err != nil && err != http.ErrMissingFile {
 		log.Printf("photo: %v", err)
@@ -457,11 +457,21 @@ func addNewsPost(w http.ResponseWriter, r *http.Request) {
 	} else if err == http.ErrMissingFile {
 		photoForDB = nil
 	} else {
-		// Check size limits
-		if photo_header.Size > int64(2<<20) {
-			response.Res(w, "error", http.StatusBadRequest, "Photo exceeds 2MB limit")
+		// check if photo is of type image
+		buf := make([]byte, 512)
+		_, err = photo.Read(buf)
+		if err != nil {
+			toolkit.LogError(r, err)
+			response.Res(w, "error", http.StatusBadRequest, err.Error())
 			return
 		}
+		contentType := http.DetectContentType(buf)
+		if !strings.HasPrefix(contentType, "image/") {
+			log.Printf("%v: strings.HasPrefix(contentType, \"image/\"): %v", r.URL, strings.HasPrefix(contentType, "image/"))
+			response.Res(w, "error", http.StatusBadRequest, "photo is not an image file")
+			return
+		}
+
 		photoForDB, _ = io.ReadAll(photo)
 		photo.Close()
 	}
@@ -485,7 +495,7 @@ func addNewsPost(w http.ResponseWriter, r *http.Request) {
 				}
 	*/
 
-	audio, audio_header, err := r.FormFile("audio")
+	audio, _, err := r.FormFile("audio")
 	var audioForDB []byte
 	if err != nil && err != http.ErrMissingFile {
 		log.Printf("audio: %v", err)
@@ -494,15 +504,26 @@ func addNewsPost(w http.ResponseWriter, r *http.Request) {
 	} else if err == http.ErrMissingFile {
 		audioForDB = nil
 	} else {
-		if audio_header.Size > int64(4<<20) {
-			response.Res(w, "error", http.StatusBadRequest, "Audio exceeds 4MB limit")
+		buf := make([]byte, 512) // Why 512 bytes? See http://golang.org/pkg/net/http/#DetectContentType
+		_, err = audio.Read(buf)
+		if err != nil {
+			toolkit.LogError(r, err)
+			response.Res(w, "error", http.StatusBadRequest, err.Error())
 			return
 		}
+
+		contentType := http.DetectContentType(buf)
+		if !strings.HasPrefix(contentType, "audio/") {
+			log.Printf("%v: strings.HasPrefix(contentType, \"audio/\"): %v", r.URL, strings.HasPrefix(contentType, "audio/"))
+			response.Res(w, "error", http.StatusBadRequest, "audio is not an audio file")
+			return
+		}
+
 		audioForDB, _ = io.ReadAll(audio)
 		audio.Close()
 	}
 
-	cover_image, cover_image_header, err := r.FormFile("cover_image")
+	cover_image, _, err := r.FormFile("cover_image")
 	var coverImageForDB []byte
 	if err != nil && err != http.ErrMissingFile {
 		log.Printf("cover_image: %v", err)
@@ -511,10 +532,20 @@ func addNewsPost(w http.ResponseWriter, r *http.Request) {
 	} else if err == http.ErrMissingFile {
 		coverImageForDB = nil
 	} else {
-		if cover_image_header.Size > int64(1<<20) {
-			response.Res(w, "error", http.StatusBadRequest, "Cover image exceeds 1MB limit")
+		buf := make([]byte, 512)
+		_, err = cover_image.Read(buf)
+		if err != nil {
+			toolkit.LogError(r, err)
+			response.Res(w, "error", http.StatusBadRequest, err.Error())
 			return
 		}
+		contentType := http.DetectContentType(buf)
+		if !strings.HasPrefix(contentType, "image/") {
+			log.Printf("%v: strings.HasPrefix(contentType, \"image/\"): %v", r.URL, strings.HasPrefix(contentType, "image/"))
+			response.Res(w, "error", http.StatusBadRequest, "cover_image is not an image file")
+			return
+		}
+
 		coverImageForDB, _ = io.ReadAll(cover_image)
 		cover_image.Close()
 	}
@@ -772,18 +803,28 @@ func editNewsPost(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	photo, photo_header, err := r.FormFile("photo")
+	photo, _, err := r.FormFile("photo")
 	if err != nil && err != http.ErrMissingFile {
 		log.Printf("photo: %v", err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	} else if err == http.ErrMissingFile {
 	} else {
-		// Check size limits
-		if photo_header.Size > int64(2<<20) {
-			response.Res(w, "error", http.StatusBadRequest, "Photo exceeds 2MB limit")
+		// check if photo is of type image
+		buf := make([]byte, 512)
+		_, err = photo.Read(buf)
+		if err != nil {
+			toolkit.LogError(r, err)
+			response.Res(w, "error", http.StatusBadRequest, err.Error())
 			return
 		}
+		contentType := http.DetectContentType(buf)
+		if !strings.HasPrefix(contentType, "image/") {
+			log.Printf("%v: strings.HasPrefix(contentType, \"image/\"): %v", r.URL, strings.HasPrefix(contentType, "image/"))
+			response.Res(w, "error", http.StatusBadRequest, "photo is not an image file")
+			return
+		}
+
 		photoForDB, _ := io.ReadAll(photo)
 		photo.Close()
 		sqlStatement := `
@@ -840,17 +881,28 @@ func editNewsPost(w http.ResponseWriter, r *http.Request) {
 		}
 	*/
 
-	audio, audio_header, err := r.FormFile("audio")
+	audio, _, err := r.FormFile("audio")
 	if err != nil && err != http.ErrMissingFile {
 		log.Printf("audio: %v", err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	} else if err == http.ErrMissingFile {
 	} else {
-		if audio_header.Size > int64(4<<20) {
-			response.Res(w, "error", http.StatusBadRequest, "Audio exceeds 4MB limit")
+		buf := make([]byte, 512) // Why 512 bytes? See http://golang.org/pkg/net/http/#DetectContentType
+		_, err = audio.Read(buf)
+		if err != nil {
+			toolkit.LogError(r, err)
+			response.Res(w, "error", http.StatusBadRequest, err.Error())
 			return
 		}
+
+		contentType := http.DetectContentType(buf)
+		if !strings.HasPrefix(contentType, "audio/") {
+			log.Printf("%v: strings.HasPrefix(contentType, \"audio/\"): %v", r.URL, strings.HasPrefix(contentType, "audio/"))
+			response.Res(w, "error", http.StatusBadRequest, "audio is not an audio file")
+			return
+		}
+
 		audioForDB, _ := io.ReadAll(audio)
 		audio.Close()
 		sqlStatement := `
@@ -866,17 +918,27 @@ func editNewsPost(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	cover_image, cover_image_header, err := r.FormFile("cover_image")
+	cover_image, _, err := r.FormFile("cover_image")
 	if err != nil && err != http.ErrMissingFile {
 		log.Printf("cover_image: %v", err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	} else if err == http.ErrMissingFile {
 	} else {
-		if cover_image_header.Size > int64(1<<20) {
-			response.Res(w, "error", http.StatusBadRequest, "Cover image exceeds 1MB limit")
+		buf := make([]byte, 512)
+		_, err = cover_image.Read(buf)
+		if err != nil {
+			toolkit.LogError(r, err)
+			response.Res(w, "error", http.StatusBadRequest, err.Error())
 			return
 		}
+		contentType := http.DetectContentType(buf)
+		if !strings.HasPrefix(contentType, "image/") {
+			log.Printf("%v: strings.HasPrefix(contentType, \"image/\"): %v", r.URL, strings.HasPrefix(contentType, "image/"))
+			response.Res(w, "error", http.StatusBadRequest, "cover_image is not an image file")
+			return
+		}
+
 		coverImageForDB, _ := io.ReadAll(cover_image)
 		cover_image.Close()
 		sqlStatement := `
