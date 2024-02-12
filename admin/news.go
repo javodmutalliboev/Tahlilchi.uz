@@ -706,7 +706,7 @@ func editNewsPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse multipart form
-	err = r.ParseMultipartForm(15 << 20)
+	err = r.ParseMultipartForm(1 << 30) // 1GB = 1 << 30 bytes
 	if err != nil {
 		log.Printf("%v: edit news post: %v", r.URL, err)
 		response.Res(w, "error", http.StatusBadRequest, err.Error())
