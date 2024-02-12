@@ -457,23 +457,15 @@ func addNewsPost(w http.ResponseWriter, r *http.Request) {
 	} else if err == http.ErrMissingFile {
 		photoForDB = nil
 	} else {
-		// check if photo is of type image
-		buf := make([]byte, 512)
-		_, err = photo.Read(buf)
-		if err != nil {
-			toolkit.LogError(r, err)
-			response.Res(w, "error", http.StatusBadRequest, err.Error())
-			return
-		}
-		contentType := http.DetectContentType(buf)
-		if !strings.HasPrefix(contentType, "image/") {
-			log.Printf("%v: strings.HasPrefix(contentType, \"image/\"): %v", r.URL, strings.HasPrefix(contentType, "image/"))
+		photoForDB, _ = io.ReadAll(photo)
+		photo.Close()
+		// check file type
+		filetype := http.DetectContentType(photoForDB)
+		if !strings.HasPrefix(filetype, "image/") {
+			log.Printf("%v: photo is not an image file", r.URL)
 			response.Res(w, "error", http.StatusBadRequest, "photo is not an image file")
 			return
 		}
-
-		photoForDB, _ = io.ReadAll(photo)
-		photo.Close()
 	}
 
 	video := r.FormValue("video")
@@ -504,23 +496,15 @@ func addNewsPost(w http.ResponseWriter, r *http.Request) {
 	} else if err == http.ErrMissingFile {
 		audioForDB = nil
 	} else {
-		buf := make([]byte, 512) // Why 512 bytes? See http://golang.org/pkg/net/http/#DetectContentType
-		_, err = audio.Read(buf)
-		if err != nil {
-			toolkit.LogError(r, err)
-			response.Res(w, "error", http.StatusBadRequest, err.Error())
-			return
-		}
-
-		contentType := http.DetectContentType(buf)
-		if !strings.HasPrefix(contentType, "audio/") {
-			log.Printf("%v: strings.HasPrefix(contentType, \"audio/\"): %v", r.URL, strings.HasPrefix(contentType, "audio/"))
+		audioForDB, _ = io.ReadAll(audio)
+		audio.Close()
+		// Check file type
+		filetype := http.DetectContentType(audioForDB)
+		if !strings.HasPrefix(filetype, "audio/") {
+			log.Printf("%v: audio is not an audio file", r.URL)
 			response.Res(w, "error", http.StatusBadRequest, "audio is not an audio file")
 			return
 		}
-
-		audioForDB, _ = io.ReadAll(audio)
-		audio.Close()
 	}
 
 	cover_image, _, err := r.FormFile("cover_image")
@@ -532,22 +516,16 @@ func addNewsPost(w http.ResponseWriter, r *http.Request) {
 	} else if err == http.ErrMissingFile {
 		coverImageForDB = nil
 	} else {
-		buf := make([]byte, 512)
-		_, err = cover_image.Read(buf)
-		if err != nil {
-			toolkit.LogError(r, err)
-			response.Res(w, "error", http.StatusBadRequest, err.Error())
-			return
-		}
-		contentType := http.DetectContentType(buf)
-		if !strings.HasPrefix(contentType, "image/") {
-			log.Printf("%v: strings.HasPrefix(contentType, \"image/\"): %v", r.URL, strings.HasPrefix(contentType, "image/"))
+		coverImageForDB, _ = io.ReadAll(cover_image)
+		cover_image.Close()
+
+		// check file type
+		filetype := http.DetectContentType(coverImageForDB)
+		if !strings.HasPrefix(filetype, "image/") {
+			log.Printf("%v: cover_image is not an image file", r.URL)
 			response.Res(w, "error", http.StatusBadRequest, "cover_image is not an image file")
 			return
 		}
-
-		coverImageForDB, _ = io.ReadAll(cover_image)
-		cover_image.Close()
 	}
 
 	// Get tags if they exist
@@ -810,23 +788,17 @@ func editNewsPost(w http.ResponseWriter, r *http.Request) {
 		return
 	} else if err == http.ErrMissingFile {
 	} else {
-		// check if photo is of type image
-		buf := make([]byte, 512)
-		_, err = photo.Read(buf)
-		if err != nil {
-			toolkit.LogError(r, err)
-			response.Res(w, "error", http.StatusBadRequest, err.Error())
-			return
-		}
-		contentType := http.DetectContentType(buf)
-		if !strings.HasPrefix(contentType, "image/") {
-			log.Printf("%v: strings.HasPrefix(contentType, \"image/\"): %v", r.URL, strings.HasPrefix(contentType, "image/"))
+		photoForDB, _ := io.ReadAll(photo)
+		photo.Close()
+
+		// check file type
+		filetype := http.DetectContentType(photoForDB)
+		if !strings.HasPrefix(filetype, "image/") {
+			log.Printf("%v: photo is not an image file", r.URL)
 			response.Res(w, "error", http.StatusBadRequest, "photo is not an image file")
 			return
 		}
 
-		photoForDB, _ := io.ReadAll(photo)
-		photo.Close()
 		sqlStatement := `
 			UPDATE news_posts
 			SET photo = $1, updated_at = NOW()
@@ -888,23 +860,17 @@ func editNewsPost(w http.ResponseWriter, r *http.Request) {
 		return
 	} else if err == http.ErrMissingFile {
 	} else {
-		buf := make([]byte, 512) // Why 512 bytes? See http://golang.org/pkg/net/http/#DetectContentType
-		_, err = audio.Read(buf)
-		if err != nil {
-			toolkit.LogError(r, err)
-			response.Res(w, "error", http.StatusBadRequest, err.Error())
-			return
-		}
+		audioForDB, _ := io.ReadAll(audio)
+		audio.Close()
 
-		contentType := http.DetectContentType(buf)
-		if !strings.HasPrefix(contentType, "audio/") {
-			log.Printf("%v: strings.HasPrefix(contentType, \"audio/\"): %v", r.URL, strings.HasPrefix(contentType, "audio/"))
+		// Check file type
+		filetype := http.DetectContentType(audioForDB)
+		if !strings.HasPrefix(filetype, "audio/") {
+			log.Printf("%v: audio is not an audio file", r.URL)
 			response.Res(w, "error", http.StatusBadRequest, "audio is not an audio file")
 			return
 		}
 
-		audioForDB, _ := io.ReadAll(audio)
-		audio.Close()
 		sqlStatement := `
 			UPDATE news_posts
 			SET audio = $1, updated_at = NOW()
@@ -925,22 +891,17 @@ func editNewsPost(w http.ResponseWriter, r *http.Request) {
 		return
 	} else if err == http.ErrMissingFile {
 	} else {
-		buf := make([]byte, 512)
-		_, err = cover_image.Read(buf)
-		if err != nil {
-			toolkit.LogError(r, err)
-			response.Res(w, "error", http.StatusBadRequest, err.Error())
-			return
-		}
-		contentType := http.DetectContentType(buf)
-		if !strings.HasPrefix(contentType, "image/") {
-			log.Printf("%v: strings.HasPrefix(contentType, \"image/\"): %v", r.URL, strings.HasPrefix(contentType, "image/"))
+		coverImageForDB, _ := io.ReadAll(cover_image)
+		cover_image.Close()
+
+		// check file type
+		filetype := http.DetectContentType(coverImageForDB)
+		if !strings.HasPrefix(filetype, "image/") {
+			log.Printf("%v: cover_image is not an image file", r.URL)
 			response.Res(w, "error", http.StatusBadRequest, "cover_image is not an image file")
 			return
 		}
 
-		coverImageForDB, _ := io.ReadAll(cover_image)
-		cover_image.Close()
 		sqlStatement := `
 			UPDATE news_posts
 			SET cover_image = $1, updated_at = NOW()
