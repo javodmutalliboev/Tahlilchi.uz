@@ -1,7 +1,6 @@
 package client
 
 import (
-	"database/sql"
 	"fmt"
 	"io"
 	"net/http"
@@ -57,6 +56,7 @@ func addAppeal(w http.ResponseWriter, r *http.Request) {
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
+	defer database.Close()
 
 	// Insert the appeal form into the database returning the id. it is integer
 	var id int
@@ -185,14 +185,23 @@ func addAppeal(w http.ResponseWriter, r *http.Request) {
 
 	response.Res(w, "success", http.StatusCreated, "The appeal form has been submitted successfully.")
 
-	go sendToTBot(r, database, id)
+	go sendToTBot(r, id)
 }
 
-func sendToTBot(r *http.Request, database *sql.DB, id int) {
+func sendToTBot(r *http.Request, id int) {
+	// create a new database connection
+	database, err := db.DB()
+	if err != nil {
+		toolkit.LogError(r, fmt.Errorf("sendToTBot appeal id: %v: error creating a new database connection: %v", id, err))
+		return
+	}
+	// defer the close of the database connection
+	defer database.Close()
+
 	// get the appeal by id from the appeals table
 	var appeal Appeal
 	// select name, surname, phone_number, message
-	err := database.QueryRow("SELECT name, surname, phone_number, message FROM appeals WHERE id = $1", id).Scan(&appeal.Name, &appeal.Surname, &appeal.PhoneNumber, &appeal.Message)
+	err = database.QueryRow("SELECT name, surname, phone_number, message FROM appeals WHERE id = $1", id).Scan(&appeal.Name, &appeal.Surname, &appeal.PhoneNumber, &appeal.Message)
 	if err != nil {
 		toolkit.LogError(r, fmt.Errorf("sendToTBot appeal id: %v: error getting the appeal from the database: %v", id, err))
 	}
