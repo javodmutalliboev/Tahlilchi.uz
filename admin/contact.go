@@ -423,6 +423,41 @@ func getAppealCountAll(w http.ResponseWriter, r *http.Request) {
 	response.Res(w, "success", http.StatusOK, AppealCount{Period: "all", Count: count})
 }
 
+// deleteAppeal deletes an appeal from the database
+func deleteAppeal(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	exists, err := appealExists(id)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if !*exists {
+		response.Res(w, "error", http.StatusNotFound, "appeal not found")
+		return
+	}
+
+	database, err := db.DB()
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	_, err = database.Exec("DELETE FROM appeals WHERE id = $1", id)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	response.Res(w, "success", http.StatusOK, "appeal deleted")
+}
+
 func getAppealCount(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	period := vars["period"]

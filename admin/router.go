@@ -161,6 +161,8 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	contactAppealRouter.HandleFunc("/{id}/video", middleware.Chain(appealVideo, authPackage.AdminAuth())).Methods("GET")
 	contactAppealRouter.HandleFunc("/count/{period}", middleware.Chain(getAppealCount, authPackage.AdminAuth())).Methods("GET")
 	contactAppealRouter.HandleFunc("/count", middleware.Chain(getAppealCountAll, authPackage.AdminAuth())).Methods("GET")
+	// route to delete appeal
+	contactAppealRouter.HandleFunc("/delete/{id}", middleware.Chain(deleteAppeal, authPackage.AdminAuth())).Methods("DELETE")
 
 	contactRouter.HandleFunc("", middleware.Chain(createAdminContact, authPackage.AdminAuth())).Methods("POST")
 	contactRouter.HandleFunc("", middleware.Chain(getAdminContact, authPackage.AdminAuth())).Methods("GET")
