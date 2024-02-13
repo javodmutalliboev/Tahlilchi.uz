@@ -1,21 +1,25 @@
 package admin
 
 import (
-	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"Tahlilchi.uz/db"
 	"Tahlilchi.uz/response"
 	"Tahlilchi.uz/toolkit"
 	"github.com/gorilla/mux"
-	"github.com/jackc/pgx/v4"
 )
+
+// AppealListResponse
+type AppealListResponse struct {
+	AppealList []Appeal `json:"appeal_list"`
+	Previous   bool     `json:"previous"`
+	Next       bool     `json:"next"`
+}
 
 type Appeal struct {
 	ID          int    `json:"id"`
@@ -24,20 +28,32 @@ type Appeal struct {
 	PhoneNumber string `json:"phone_number"`
 	Message     string `json:"message"`
 	CreatedAt   string `json:"created_at"`
-	Picture     *int   `json:"picture"`
-	Video       *int   `json:"video"`
+	Picture     []byte `json:"picture"`
+	Video       []byte `json:"video"`
 }
 
 func appealList(w http.ResponseWriter, r *http.Request) {
-	db, err := db.DB()
+	// get page and limit from the request url
+	page, limit, err := toolkit.GetPageLimit(r)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// offset
+	offset := (page - 1) * limit
+
+	// Open a connection to the database
+	database, err := db.DB()
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
-	defer db.Close()
+	defer database.Close()
 
-	rows, err := db.Query("SELECT id, name, surname, phone_number, message, created_at, picture, video FROM appeals")
+	rows, err := database.Query("SELECT id, name, surname, phone_number, message, created_at FROM appeals ORDER BY id DESC LIMIT $1 OFFSET $2", limit, offset)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -62,7 +78,27 @@ func appealList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.Res(w, "success", http.StatusOK, appeals)
+	var alr AppealListResponse
+
+	var count int
+	err = database.QueryRow("SELECT COUNT(*) FROM appeals").Scan(&count)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if count > page*limit {
+		alr.Next = true
+	}
+
+	if page > 1 {
+		alr.Previous = true
+	}
+
+	alr.AppealList = appeals
+
+	response.Res(w, "success", http.StatusOK, alr)
 }
 
 func appealExists(id string) (*bool, error) {
@@ -86,6 +122,12 @@ func appealPicture(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	idStr := vars["id"]
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusBadRequest, "invalid id")
+		return
+	}
 
 	exists, err := appealExists(idStr)
 	if err != nil {
@@ -108,40 +150,16 @@ func appealPicture(w http.ResponseWriter, r *http.Request) {
 	}
 	defer database.Close()
 
-	var oid sql.NullInt64
-	err = database.QueryRow("SELECT picture FROM appeals WHERE id = $1", idStr).Scan(&oid)
-	if err != nil {
-		log.Printf("%v: error: %v", r.URL, err)
-		response.Res(w, "error", http.StatusBadRequest, err.Error())
-		return
-	}
-
-	conn, err := pgx.Connect(context.Background(), db.ConnString())
+	var appeal Appeal
+	err = database.QueryRow("SELECT picture FROM appeals WHERE id = $1", id).Scan(&appeal.Picture)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
-	defer conn.Close(context.Background())
 
-	tx, err := conn.Begin(context.Background())
-	if err != nil {
-		log.Printf("%v: error: %v", r.URL, err)
-		response.Res(w, "error", http.StatusInternalServerError, "server error")
-		return
-	}
-	defer tx.Rollback(context.Background())
-
-	lob := tx.LargeObjects()
-	obj, err := lob.Open(context.Background(), uint32(oid.Int64), pgx.LargeObjectModeRead)
-	if err != nil {
-		log.Printf("%v: error: %v", r.URL, err)
-		response.Res(w, "error", http.StatusNotFound, "File not found")
-		return
-	}
-	defer obj.Close()
-
-	_, err = io.Copy(w, obj)
+	w.Header().Set("Content-Type", "image/jpeg")
+	_, err = w.Write(appeal.Picture)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -153,6 +171,12 @@ func appealVideo(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	idStr := vars["id"]
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusBadRequest, "invalid id")
+		return
+	}
 
 	exists, err := appealExists(idStr)
 	if err != nil {
@@ -175,40 +199,16 @@ func appealVideo(w http.ResponseWriter, r *http.Request) {
 	}
 	defer database.Close()
 
-	var oid sql.NullInt64
-	err = database.QueryRow("SELECT video FROM appeals WHERE id = $1", idStr).Scan(&oid)
-	if err != nil {
-		log.Printf("%v: error: %v", r.URL, err)
-		response.Res(w, "error", http.StatusBadRequest, err.Error())
-		return
-	}
-
-	conn, err := pgx.Connect(context.Background(), db.ConnString())
+	var appeal Appeal
+	err = database.QueryRow("SELECT video FROM appeals WHERE id = $1", id).Scan(&appeal.Video)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
-	defer conn.Close(context.Background())
 
-	tx, err := conn.Begin(context.Background())
-	if err != nil {
-		log.Printf("%v: error: %v", r.URL, err)
-		response.Res(w, "error", http.StatusInternalServerError, "server error")
-		return
-	}
-	defer tx.Rollback(context.Background())
-
-	lob := tx.LargeObjects()
-	obj, err := lob.Open(context.Background(), uint32(oid.Int64), pgx.LargeObjectModeRead)
-	if err != nil {
-		log.Printf("%v: error: %v", r.URL, err)
-		response.Res(w, "error", http.StatusNotFound, "File not found")
-		return
-	}
-	defer obj.Close()
-
-	_, err = io.Copy(w, obj)
+	w.Header().Set("Content-Type", "video/mp4")
+	_, err = w.Write(appeal.Video)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
