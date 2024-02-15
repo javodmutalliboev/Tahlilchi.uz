@@ -69,3 +69,14 @@ type admin struct {
 	Email string `json:"email"`
 	Role  string `json:"role"`
 }
+
+// logout logs the admin out
+func logout(w http.ResponseWriter, r *http.Request) {
+	// Get a session
+	session, _ := authPackage.Store.Get(r, "Tahlilchi.uz-admin")
+	// Revoke users authentication
+	// Delete the session
+	session.Options.MaxAge = -1
+	session.Save(r, w)
+	response.Res(w, "success", http.StatusOK, "Logged out")
+}

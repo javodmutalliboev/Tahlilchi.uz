@@ -9,6 +9,8 @@ import (
 func AdminRouter(r *mux.Router) *mux.Router {
 	adminRouter := r.PathPrefix("/admin").Subrouter()
 	adminRouter.HandleFunc("/login", login).Methods("POST") // .Schemes(os.Getenv("SCHEMES"))
+	// logout route: method: GET
+	adminRouter.HandleFunc("/logout", middleware.Chain(logout, authPackage.AdminAuth())).Methods("GET")
 
 	forgotPasswordRouter := adminRouter.PathPrefix("/forgot-password").Subrouter()
 	forgotPasswordRouter.HandleFunc("/email", forgotPasswordEmail).Methods("POST")
