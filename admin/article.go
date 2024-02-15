@@ -288,7 +288,7 @@ func addArticle(w http.ResponseWriter, r *http.Request) {
 	if len(photoFiles) > 0 {
 		for _, fh := range photoFiles {
 			// check whether the file is an image by checking the content type
-			if fh.Header.Get("Content-Type") != "image/jpeg" && fh.Header.Get("Content-Type") != "image/png" {
+			if fh.Header.Get("Content-Type")[:5] != "image" {
 				log.Printf("%v: photo is not an image: %v", r.URL, fh.Header.Get("Content-Type"))
 				response.Res(w, "error", http.StatusBadRequest, "photo is not an image")
 				return
@@ -343,7 +343,7 @@ func addArticle(w http.ResponseWriter, r *http.Request) {
 		coverImage = nil
 	} else {
 		// check whether the file is an image by checking the content type
-		if coverImageHeader.Header.Get("Content-Type") != "image/jpeg" && coverImageHeader.Header.Get("Content-Type") != "image/png" {
+		if coverImageHeader.Header.Get("Content-Type")[:5] != "image" {
 			log.Printf("%v: cover_image is not an image: %v", r.URL, coverImageHeader.Header.Get("Content-Type"))
 			response.Res(w, "error", http.StatusBadRequest, "cover_image is not an image")
 			return
@@ -643,7 +643,7 @@ func editArticle(w http.ResponseWriter, r *http.Request) {
 
 	if coverImageFile != nil {
 		// check whether the file is an image by checking the content type
-		if coverImageHeader.Header.Get("Content-Type") != "image/jpeg" && coverImageHeader.Header.Get("Content-Type") != "image/png" {
+		if coverImageHeader.Header.Get("Content-Type")[:5] != "image" {
 			log.Printf("%v: cover_image is not an image: %v", r.URL, coverImageHeader.Header.Get("Content-Type"))
 			response.Res(w, "error", http.StatusBadRequest, "cover_image is not an image")
 			return
@@ -783,7 +783,7 @@ func addArticlePhotos(w http.ResponseWriter, r *http.Request) {
 	if len(photoFiles) > 0 {
 		for _, fh := range photoFiles {
 			// check whether the file is an image by checking the content type
-			if fh.Header.Get("Content-Type") != "image/jpeg" && fh.Header.Get("Content-Type") != "image/png" {
+			if fh.Header.Get("Content-Type")[:5] != "image" {
 				log.Printf("%v: photo is not an image: %v", r.URL, fh.Header.Get("Content-Type"))
 				response.Res(w, "error", http.StatusBadRequest, "photo is not an image")
 				return
@@ -964,7 +964,8 @@ func getArticlePhoto(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Send the response as photo
-	w.Header().Set("Content-Type", "image/jpeg")
+	contentType := http.DetectContentType(photo)
+	w.Header().Set("Content-Type", contentType)
 	w.Header().Set("Content-Length", strconv.Itoa(len(photo)))
 	w.Write(photo)
 }
@@ -1074,7 +1075,8 @@ func getArticleCoverImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Send the response as cover image
-	w.Header().Set("Content-Type", "image/jpeg")
+	contentType := http.DetectContentType(coverImage)
+	w.Header().Set("Content-Type", contentType)
 	w.Header().Set("Content-Length", strconv.Itoa(len(coverImage)))
 	w.Write(coverImage)
 }

@@ -9,6 +9,7 @@ import (
 
 	"Tahlilchi.uz/db"
 	"Tahlilchi.uz/response"
+	"Tahlilchi.uz/toolkit"
 	"github.com/gorilla/mux"
 )
 
@@ -91,7 +92,7 @@ func photoGalleryAddPhotos(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse the multipart form in the request
-	err = r.ParseMultipartForm(10 << 20) // Max memory 10MB
+	err = r.ParseMultipartForm(500 << 20) // Max memory 500 MB
 	if err != nil {
 		log.Printf("%v: Could not parse multipart form: %v", r.URL, err)
 		response.Res(w, "error", http.StatusBadRequest, err.Error())
@@ -100,13 +101,22 @@ func photoGalleryAddPhotos(w http.ResponseWriter, r *http.Request) {
 
 	// Get a reference to the fileHeaders.
 	// They are accessible only after ParseMultipartForm is called.
-	files := r.MultipartForm.File["photos"] // "photos" is the key of the input form
+	files := r.MultipartForm.File["photo"] // "photo" is the key of the input form
 
 	for _, fileHeader := range files {
-		if fileHeader.Size > 2<<20 {
-			message := fmt.Sprintf("%v: photo %v size exceeds 2MB limit: %v", r.URL, fileHeader.Filename, fileHeader.Size)
-			log.Println(message)
-			response.Res(w, "error", http.StatusBadRequest, message)
+		// Check if the file is an image
+		if fileHeader.Header.Get("Content-Type")[:5] != "image" {
+			err := fmt.Errorf("photo %v is not an image: %v", fileHeader.Filename, fileHeader.Header.Get("Content-Type"))
+			toolkit.LogError(r, err)
+			response.Res(w, "error", http.StatusBadRequest, err.Error())
+			return
+		}
+
+		// Check if the file size is greater than 10MB
+		if fileHeader.Size > 10<<20 {
+			err := fmt.Errorf("photo %v size exceeds 10MB limit: %v", fileHeader.Filename, fileHeader.Size)
+			toolkit.LogError(r, err)
+			response.Res(w, "error", http.StatusBadRequest, err.Error())
 			return
 		}
 	}

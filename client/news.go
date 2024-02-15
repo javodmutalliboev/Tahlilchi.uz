@@ -510,7 +510,9 @@ func getNewsPostPhoto(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "image/jpeg")
+	contentType := http.DetectContentType(photo)
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Content-Length", strconv.Itoa(len(photo)))
 	w.Write(photo)
 }
 
@@ -534,7 +536,9 @@ func getNewsPostAudio(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "audio/mpeg")
+	contentType := http.DetectContentType(audio)
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Content-Length", strconv.Itoa(len(audio)))
 	w.Write(audio)
 }
 
@@ -558,6 +562,8 @@ func getNewsPostCoverImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "image/jpeg")
+	contentType := http.DetectContentType(CoverImage)
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Content-Length", strconv.Itoa(len(CoverImage)))
 	w.Write(CoverImage)
 }

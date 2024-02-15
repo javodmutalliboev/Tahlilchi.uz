@@ -243,7 +243,7 @@ func sendToTBot(r *http.Request, id int) {
 			}
 		} else {
 			// Send the picture
-			pic := tgbotapi.NewPhotoUpload(chatID, tgbotapi.FileBytes{Name: "picture.jpg", Bytes: appeal.Picture})
+			pic := tgbotapi.NewPhotoUpload(chatID, tgbotapi.FileBytes{Name: "picture", Bytes: appeal.Picture})
 			pic.Caption = fmt.Sprintf("Мурожаатчининг исми: %s\nФамилияси: %s\nТелефон рақами: %s", appeal.Name, appeal.Surname, appeal.PhoneNumber)
 			_, err = bot.Send(pic)
 			if err != nil {
@@ -268,7 +268,7 @@ func sendToTBot(r *http.Request, id int) {
 			}
 		} else {
 			// Send the video
-			vid := tgbotapi.NewVideoUpload(chatID, tgbotapi.FileBytes{Name: "video.mp4", Bytes: appeal.Video})
+			vid := tgbotapi.NewVideoUpload(chatID, tgbotapi.FileBytes{Name: "video", Bytes: appeal.Video})
 			vid.Caption = fmt.Sprintf("Мурожаатчининг исми: %s\nФамилияси: %s\nТелефон рақами: %s", appeal.Name, appeal.Surname, appeal.PhoneNumber)
 			_, err = bot.Send(vid)
 			if err != nil {

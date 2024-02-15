@@ -222,7 +222,9 @@ func getENewspaperCoverImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "image/jpeg")
+	contentType := http.DetectContentType(eNewspaperCoverImage)
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Content-Length", strconv.Itoa(len(eNewspaperCoverImage)))
 	w.Write(eNewspaperCoverImage)
 }
 
@@ -289,5 +291,6 @@ func getENewspaperFile(w http.ResponseWriter, r *http.Request) {
 
 	contentType := http.DetectContentType(file)
 	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Content-Length", strconv.Itoa(len(file)))
 	w.Write(file)
 }

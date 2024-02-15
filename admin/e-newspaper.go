@@ -253,7 +253,7 @@ func addENewspaper(w http.ResponseWriter, r *http.Request) {
 		coverImageForDB = nil
 	} else {
 		// check whether file is image
-		if cover_image_header.Header.Get("Content-Type") != "image/jpeg" && cover_image_header.Header.Get("Content-Type") != "image/png" {
+		if cover_image_header.Header.Get("Content-Type")[:5] != "image" {
 			response.Res(w, "error", http.StatusBadRequest, "cover_image is not an image")
 			return
 		}
@@ -484,7 +484,7 @@ func editENewspaper(w http.ResponseWriter, r *http.Request) {
 	} else if err == http.ErrMissingFile {
 	} else {
 		// check whether file is image
-		if cover_image_header.Header.Get("Content-Type") != "image/jpeg" && cover_image_header.Header.Get("Content-Type") != "image/png" {
+		if cover_image_header.Header.Get("Content-Type")[:5] != "image" {
 			response.Res(w, "error", http.StatusBadRequest, "cover_image is not an image")
 			return
 		}

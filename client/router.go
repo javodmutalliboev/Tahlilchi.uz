@@ -53,6 +53,8 @@ func ClientRouter(r *mux.Router) {
 	bpPostPhotoRouter.HandleFunc("", getBusinessPromotionalPostPhotoList).Methods("GET")
 	// route to get business promotional post photo
 	bpPostPhotoRouter.HandleFunc("/{photo_id}", getBusinessPromotionalPostPhoto).Methods("GET")
+	// route to get business promotional post cover image
+	bpPostRouter.HandleFunc("/{id}/cover_image", getBusinessPromotionalPostCoverImage).Methods("GET")
 
 	eNewspaperRouter := clientRouter.PathPrefix("/e-newspaper").Subrouter()
 	// route to get e-newspaper category list

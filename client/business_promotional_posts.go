@@ -188,3 +188,51 @@ func getBusinessPromotionalPostPhoto(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(bppPhoto.File)))
 	w.Write(bppPhoto.File)
 }
+
+// getBusinessPromotionalPostCoverImage is a handler to get business promotional post cover image
+func getBusinessPromotionalPostCoverImage(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	// open a database connection
+	database, err := db.DB()
+	if err != nil {
+		err := fmt.Errorf("error opening a database connection: %v", err)
+		toolkit.LogError(r, err)
+		response.Res(w, "error", http.StatusInternalServerError, err.Error())
+		return
+	}
+	defer database.Close()
+
+	// first check if the business promotional post where id is $1, archived is false and completed is true exists
+	var exists bool
+	err = database.QueryRow("SELECT EXISTS(SELECT 1 FROM business_promotional_posts WHERE id = $1 AND archived = false AND completed = true)", id).Scan(&exists)
+	if err != nil {
+		err := fmt.Errorf("error querying the database: %v", err)
+		toolkit.LogError(r, err)
+		response.Res(w, "error", http.StatusInternalServerError, err.Error())
+		return
+	}
+	if !exists {
+		err := fmt.Errorf("business promotional post where id is %s, archived is false and completed is true does not exist", id)
+		toolkit.LogError(r, err)
+		response.Res(w, "error", http.StatusNotFound, "business promotional post does not exist")
+		return
+	}
+
+	// get business promotional post cover image from the database: select cover_image from business_promotional_posts where id = $1 and archived is false and completed is true
+	// perform a database query: table is business_promotional_posts
+	var bppCoverImage []byte
+	err = database.QueryRow("SELECT cover_image FROM business_promotional_posts WHERE id = $1 AND archived = false AND completed = true", id).Scan(&bppCoverImage)
+	if err != nil {
+		err := fmt.Errorf("error querying the database: %v", err)
+		toolkit.LogError(r, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	contentType := http.DetectContentType(bppCoverImage)
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(bppCoverImage)))
+	w.Write(bppCoverImage)
+}

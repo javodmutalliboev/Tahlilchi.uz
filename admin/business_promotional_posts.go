@@ -1119,8 +1119,8 @@ func getBusinessPromotionalPostPhoto(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	imageType := http.DetectContentType(photo.File)
-	w.Header().Set("Content-Type", imageType)
+	contentType := http.DetectContentType(photo.File)
+	w.Header().Set("Content-Type", contentType)
 	w.Header().Set("Content-Length", strconv.Itoa(len(photo.File)))
 	w.Write(photo.File)
 }
@@ -1232,8 +1232,8 @@ func getBusinessPromotionalPostCoverImage(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	imageType := http.DetectContentType(coverImage)
-	w.Header().Set("Content-Type", imageType)
+	contentType := http.DetectContentType(coverImage)
+	w.Header().Set("Content-Type", contentType)
 	w.Header().Set("Content-Length", strconv.Itoa(len(coverImage)))
 	w.Write(coverImage)
 }

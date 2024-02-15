@@ -351,7 +351,8 @@ func getArticlePhoto(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// send the article photo as photo
-	w.Header().Set("Content-Type", "image/jpeg")
+	contentType := http.DetectContentType(articlePhoto.File)
+	w.Header().Set("Content-Type", contentType)
 	w.Header().Set("Content-Length", strconv.Itoa(len(articlePhoto.File)))
 	w.Write(articlePhoto.File)
 }
@@ -397,7 +398,8 @@ func getArticleCoverImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// send the article cover image as photo
-	w.Header().Set("Content-Type", "image/jpeg")
+	contentType := http.DetectContentType(coverImage)
+	w.Header().Set("Content-Type", contentType)
 	w.Header().Set("Content-Length", strconv.Itoa(len(coverImage)))
 	w.Write(coverImage)
 }

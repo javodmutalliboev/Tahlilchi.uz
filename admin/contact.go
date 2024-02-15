@@ -158,7 +158,9 @@ func appealPicture(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "image/jpeg")
+	contentType := http.DetectContentType(appeal.Picture)
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(appeal.Picture)))
 	_, err = w.Write(appeal.Picture)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
@@ -207,7 +209,9 @@ func appealVideo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "video/mp4")
+	contentType := http.DetectContentType(appeal.Video)
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(appeal.Video)))
 	_, err = w.Write(appeal.Video)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
