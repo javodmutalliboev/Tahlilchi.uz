@@ -1110,3 +1110,62 @@ func getBusinessPromotionalPostPhoto(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Length", strconv.Itoa(len(photo.File)))
 	w.Write(photo.File)
 }
+
+// deleteBusinessPromotionalPostPhoto is a handler to delete photo of business promotional post
+func deleteBusinessPromotionalPostPhoto(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	exists, err := bpPostExists(id)
+	if err != nil {
+		log.Printf("%v: deleteBusinessPromotionalPostPhoto bpPostExists(id): %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if !*exists {
+		log.Printf("%v: deleteBusinessPromotionalPostPhoto bpPostExists(id): %v", r.URL, *exists)
+		response.Res(w, "error", http.StatusBadRequest, "Cannot delete photo of non existent business promotional post")
+		return
+	}
+
+	archived, err := bpPostIsArchived(id)
+	if err != nil {
+		log.Printf("%v: deleteBusinessPromotionalPostPhoto bpPostIsArchived(id): %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if *archived {
+		log.Printf("%v: deleteBusinessPromotionalPostPhoto bpPostIsArchived(id): %v", r.URL, *archived)
+		response.Res(w, "error", http.StatusBadRequest, "Cannot delete photo of archived business promotional post")
+		return
+	}
+
+	photo_id := vars["photo_id"]
+
+	// Open a connection to the database
+	database, err := db.DB()
+	if err != nil {
+		log.Printf("%v: deleteBusinessPromotionalPostPhoto: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	stmt, err := database.Prepare("DELETE FROM bpp_photos WHERE id=$1 AND bpp=$2")
+	if err != nil {
+		log.Printf("%v: deleteBusinessPromotionalPostPhoto: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	_, err = stmt.Exec(photo_id, id)
+	if err != nil {
+		log.Printf("%v: deleteBusinessPromotionalPostPhoto: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	response.Res(w, "success", http.StatusOK, "deleted")
+}
