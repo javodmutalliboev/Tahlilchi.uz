@@ -1055,3 +1055,58 @@ func getBusinessPromotionalPostPhotoList(w http.ResponseWriter, r *http.Request)
 
 	response.Res(w, "success", http.StatusOK, photos)
 }
+
+// getBusinessPromotionalPostPhoto is a handler to get photo of business promotional post
+func getBusinessPromotionalPostPhoto(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	exists, err := bpPostExists(id)
+	if err != nil {
+		log.Printf("%v: getBusinessPromotionalPostPhoto bpPostExists(id): %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if !*exists {
+		log.Printf("%v: getBusinessPromotionalPostPhoto bpPostExists(id): %v", r.URL, *exists)
+		response.Res(w, "error", http.StatusBadRequest, "Cannot get photo of non existent business promotional post")
+		return
+	}
+
+	archived, err := bpPostIsArchived(id)
+	if err != nil {
+		log.Printf("%v: getBusinessPromotionalPostPhoto bpPostIsArchived(id): %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if *archived {
+		log.Printf("%v: getBusinessPromotionalPostPhoto bpPostIsArchived(id): %v", r.URL, *archived)
+		response.Res(w, "error", http.StatusBadRequest, "Cannot get photo of archived business promotional post")
+		return
+	}
+
+	// Open a connection to the database
+	database, err := db.DB()
+	if err != nil {
+		log.Printf("%v: getBusinessPromotionalPostPhoto: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	photo_id := vars["photo_id"]
+	var photo model.BusinessPromotionalPostPhoto
+	err = database.QueryRow("SELECT id, bpp, file_name, file, created_at FROM bpp_photos WHERE id = $1 AND bpp = $2", photo_id, id).Scan(&photo.ID, &photo.BPP, &photo.FileName, &photo.File, &photo.CreatedAt)
+	if err != nil {
+		log.Printf("%v: getBusinessPromotionalPostPhoto: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	imageType := http.DetectContentType(photo.File)
+	w.Header().Set("Content-Type", imageType)
+	w.Header().Set("Content-Length", strconv.Itoa(len(photo.File)))
+	w.Write(photo.File)
+}

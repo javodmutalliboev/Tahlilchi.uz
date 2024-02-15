@@ -118,6 +118,8 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	businessPromotionalPostPhotoRouter.HandleFunc("/add", middleware.Chain(addBusinessPromotionalPostPhoto, authPackage.AdminAuth())).Methods("POST")
 	// route to get business promotional post photo list
 	businessPromotionalPostPhotoRouter.HandleFunc("/list", middleware.Chain(getBusinessPromotionalPostPhotoList, authPackage.AdminAuth())).Methods("GET")
+	// route to get business promotional post photo
+	businessPromotionalPostPhotoRouter.HandleFunc("/{photo_id}", middleware.Chain(getBusinessPromotionalPostPhoto, authPackage.AdminAuth())).Methods("GET")
 
 	businessPromotionalPostRouter.HandleFunc("/edit/{id}", middleware.Chain(editBusinessPromotionalPost, authPackage.AdminAuth())).Methods("PATCH")
 	businessPromotionalPostRouter.HandleFunc("/delete/{id}", middleware.Chain(deleteBPPost, authPackage.AdminAuth())).Methods("DELETE")
