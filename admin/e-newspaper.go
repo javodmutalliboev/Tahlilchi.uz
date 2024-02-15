@@ -900,8 +900,8 @@ func getENewspaperFile(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	w.Header().Set("Content-Disposition", "attachment; filename=e-newspaper.pdf")
-	w.Header().Set("Content-Type", "application/pdf")
+	contentType := http.DetectContentType(file)
+	w.Header().Set("Content-Type", contentType)
 	w.Header().Set("Content-Length", strconv.Itoa(len(file)))
 	w.Write(file)
 }

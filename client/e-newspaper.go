@@ -279,18 +279,15 @@ func getENewspaperFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var file []byte
-	var fileName string
 	if alphabet == "latin" {
 		file = eNewspaper.FileLatin
-		fileName = eNewspaper.TitleLatin
 	}
 
 	if alphabet == "cyrillic" {
 		file = eNewspaper.FileCyrillic
-		fileName = eNewspaper.TitleCyrillic
 	}
 
-	w.Header().Set("Content-Disposition", "attachment; filename="+fileName+".pdf")
-	w.Header().Set("Content-Type", "application/pdf")
+	contentType := http.DetectContentType(file)
+	w.Header().Set("Content-Type", contentType)
 	w.Write(file)
 }

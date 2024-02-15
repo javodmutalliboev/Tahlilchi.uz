@@ -140,3 +140,51 @@ func getBusinessPromotionalPostPhotoList(w http.ResponseWriter, r *http.Request)
 
 	response.Res(w, "success", http.StatusOK, bppPhotoList)
 }
+
+// getBusinessPromotionalPostPhoto is a handler to get business promotional post photo
+func getBusinessPromotionalPostPhoto(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	// open a database connection
+	database, err := db.DB()
+	if err != nil {
+		err := fmt.Errorf("error opening a database connection: %v", err)
+		toolkit.LogError(r, err)
+		response.Res(w, "error", http.StatusInternalServerError, err.Error())
+		return
+	}
+	defer database.Close()
+
+	// first check if the business promotional post where id is $1, archived is false and completed is true exists
+	var exists bool
+	err = database.QueryRow("SELECT EXISTS(SELECT 1 FROM business_promotional_posts WHERE id = $1 AND archived = false AND completed = true)", id).Scan(&exists)
+	if err != nil {
+		err := fmt.Errorf("error querying the database: %v", err)
+		toolkit.LogError(r, err)
+		response.Res(w, "error", http.StatusInternalServerError, err.Error())
+		return
+	}
+	if !exists {
+		err := fmt.Errorf("business promotional post where id is %s, archived is false and completed is true does not exist", id)
+		toolkit.LogError(r, err)
+		response.Res(w, "error", http.StatusNotFound, "business promotional post does not exist")
+		return
+	}
+
+	// get business promotional post photo from the database: select id, bpp, file_name, file, created_at from bpp_photos where id = $1 and bpp = $2
+	// perform a database query: table is bpp_photos
+	var bppPhoto model.BusinessPromotionalPostPhoto
+	err = database.QueryRow("SELECT id, bpp, file_name, file, created_at FROM bpp_photos WHERE id = $1 AND bpp = $2", vars["photo_id"], id).Scan(&bppPhoto.ID, &bppPhoto.BPP, &bppPhoto.FileName, &bppPhoto.File, &bppPhoto.CreatedAt)
+	if err != nil {
+		err := fmt.Errorf("error querying the database: %v", err)
+		toolkit.LogError(r, err)
+		response.Res(w, "error", http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	contentType := http.DetectContentType(bppPhoto.File)
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(bppPhoto.File)))
+	w.Write(bppPhoto.File)
+}
