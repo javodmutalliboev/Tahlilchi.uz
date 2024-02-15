@@ -867,3 +867,119 @@ func businessPromotionalPostCompleted(w http.ResponseWriter, r *http.Request) {
 
 	response.Res(w, "success", http.StatusOK, "completed field updated")
 }
+
+// addBusinessPromotionalPostPhoto is a handler to add photo to business promotional post
+func addBusinessPromotionalPostPhoto(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	exists, err := bpPostExists(id)
+	if err != nil {
+		log.Printf("%v: addBusinessPromotionalPostPhoto bpPostExists(id): %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if !*exists {
+		log.Printf("%v: addBusinessPromotionalPostPhoto bpPostExists(id): %v", r.URL, *exists)
+		response.Res(w, "error", http.StatusBadRequest, "Cannot add photo to non existent business promotional post")
+		return
+	}
+
+	archived, err := bpPostIsArchived(id)
+	if err != nil {
+		log.Printf("%v: addBusinessPromotionalPostPhoto bpPostIsArchived(id): %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if *archived {
+		log.Printf("%v: addBusinessPromotionalPostPhoto bpPostIsArchived(id): %v", r.URL, *archived)
+		response.Res(w, "error", http.StatusBadRequest, "Cannot add photo to archived business promotional post")
+		return
+	}
+
+	// Parse multipart form
+	err = r.ParseMultipartForm(100 << 20) // maxMemory is 100MB
+	if err != nil {
+		log.Printf("%v: addBusinessPromotionalPostPhoto: %v", r.URL, err)
+		response.Res(w, "error", http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// Open a connection to the database
+	db, err := db.DB()
+	if err != nil {
+		log.Printf("%v: addBusinessPromotionalPostPhoto: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer db.Close()
+
+	photoArray := r.MultipartForm.File["photo"]
+	for _, fh := range photoArray {
+		if fh.Size > 10<<20 {
+			err := fmt.Errorf("photo %v size exceeds 10MB limit: %v", fh.Filename, fh.Size)
+			toolkit.LogError(r, err)
+			response.Res(w, "error", http.StatusBadRequest, err.Error())
+			return
+		}
+		// check if file is image using http.DetectContentType
+		contentType := fh.Header.Get("Content-Type")
+		if contentType[:5] != "image" {
+			err := fmt.Errorf("photo %v is not an image: %v", fh.Filename, contentType)
+			toolkit.LogError(r, err)
+			response.Res(w, "error", http.StatusBadRequest, err.Error())
+			return
+		}
+		file, err := fh.Open()
+		if err != nil {
+			err := fmt.Errorf("error opening photo %v: %v", fh.Filename, err)
+			toolkit.LogError(r, err)
+			response.Res(w, "error", http.StatusBadRequest, err.Error())
+			return
+		}
+		defer file.Close()
+		photo, err := io.ReadAll(file)
+		if err != nil {
+			err := fmt.Errorf("error reading photo %v: %v", fh.Filename, err)
+			toolkit.LogError(r, err)
+			response.Res(w, "error", http.StatusBadRequest, err.Error())
+			return
+		}
+
+		// Start a new transaction
+		tx, err := db.Begin()
+		if err != nil {
+			toolkit.LogError(r, fmt.Errorf("start a new transaction: %v", err))
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+
+		// Prepare the SQL statement: add into bpp_photos: bpp, file_name, file
+		stmt, err := tx.Prepare("INSERT INTO bpp_photos (bpp, file_name, file) VALUES ($1, $2, $3)")
+		if err != nil {
+			toolkit.LogError(r, fmt.Errorf("prepare the SQL statement: %v", err))
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+
+		// Execute the SQL statement
+		_, err = stmt.Exec(id, fh.Filename, photo)
+		if err != nil {
+			toolkit.LogError(r, fmt.Errorf("execute the SQL statement: %v", err))
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+
+		// Commit the transaction
+		err = tx.Commit()
+		if err != nil {
+			toolkit.LogError(r, fmt.Errorf("commit the transaction: %v", err))
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+	}
+
+	response.Res(w, "success", http.StatusCreated, "photos added")
+}
