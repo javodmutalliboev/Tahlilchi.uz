@@ -1,5 +1,7 @@
 package model
 
+import "time"
+
 type BusinessPromotionalPost struct {
 	ID                  int                            `json:"id"`
 	TitleLatin          string                         `json:"title_latin"`
@@ -9,7 +11,7 @@ type BusinessPromotionalPost struct {
 	Photos              []BusinessPromotionalPostPhoto `json:"photos"`
 	Videos              []string                       `json:"videos"`
 	CoverImage          []byte                         `json:"cover_image"`
-	Expiration          string                         `json:"expiration"`
+	Expiration          time.Time                      `json:"expiration"`
 	CreatedAt           string                         `json:"created_at"`
 	UpdatedAt           string                         `json:"updated_at"`
 	Archived            bool                           `json:"archived"`

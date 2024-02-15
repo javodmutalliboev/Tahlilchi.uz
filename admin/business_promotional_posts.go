@@ -151,11 +151,11 @@ func addBusinessPromotionalPost(w http.ResponseWriter, r *http.Request) {
 	}
 	switch expiration {
 	case "1 day":
-		businessPromotionalPost.Expiration = time.Now().UTC().Add(24 * time.Hour).String()
+		businessPromotionalPost.Expiration = time.Now().UTC().Add(24 * time.Hour)
 	case "1 week":
-		businessPromotionalPost.Expiration = time.Now().UTC().Add(7 * 24 * time.Hour).String()
+		businessPromotionalPost.Expiration = time.Now().UTC().Add(7 * 24 * time.Hour)
 	case "1 month":
-		businessPromotionalPost.Expiration = time.Now().UTC().AddDate(0, 1, 0).String()
+		businessPromotionalPost.Expiration = time.Now().UTC().AddDate(0, 1, 0)
 	}
 
 	// partner
