@@ -8,6 +8,7 @@ import (
 	"Tahlilchi.uz/model"
 	"Tahlilchi.uz/response"
 	"Tahlilchi.uz/toolkit"
+	"github.com/gorilla/mux"
 )
 
 func getBusinessPromotionalPosts(w http.ResponseWriter, r *http.Request) {
@@ -78,4 +79,64 @@ func getBusinessPromotionalPosts(w http.ResponseWriter, r *http.Request) {
 
 	bppListResponse.BPPList = bppList
 	response.Res(w, "success", http.StatusOK, bppListResponse)
+}
+
+func getBusinessPromotionalPostPhotoList(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	// open a database connection
+	database, err := db.DB()
+	if err != nil {
+		err := fmt.Errorf("error opening a database connection: %v", err)
+		toolkit.LogError(r, err)
+		response.Res(w, "error", http.StatusInternalServerError, err.Error())
+		return
+	}
+	defer database.Close()
+
+	// first check if the business promotional post where id is $1, archived is false and completed is true exists
+	var exists bool
+	err = database.QueryRow("SELECT EXISTS(SELECT 1 FROM business_promotional_posts WHERE id = $1 AND archived = false AND completed = true)", id).Scan(&exists)
+	if err != nil {
+		err := fmt.Errorf("error querying the database: %v", err)
+		toolkit.LogError(r, err)
+		response.Res(w, "error", http.StatusInternalServerError, err.Error())
+		return
+	}
+	if !exists {
+		err := fmt.Errorf("business promotional post where id is %s, archived is false and completed is true does not exist", id)
+		toolkit.LogError(r, err)
+		response.Res(w, "error", http.StatusNotFound, "business promotional post does not exist")
+		return
+	}
+
+	// get business promotional post photo list
+	var bppPhotoList []model.BusinessPromotionalPostPhoto
+
+	// get business promotional post photo list from the database: select id, file_name, created_at from bpp_photos where bpp = $1
+	// perform a database query: table is bpp_photos
+	rows, err := database.Query("SELECT id, file_name, created_at FROM bpp_photos WHERE bpp = $1 ORDER BY id", id)
+	if err != nil {
+		err := fmt.Errorf("error querying the database: %v", err)
+		toolkit.LogError(r, err)
+		response.Res(w, "error", http.StatusInternalServerError, err.Error())
+		return
+	}
+	defer rows.Close()
+
+	// get business promotional post photo list
+	for rows.Next() {
+		var bppPhoto model.BusinessPromotionalPostPhoto
+		err := rows.Scan(&bppPhoto.ID, &bppPhoto.FileName, &bppPhoto.CreatedAt)
+		if err != nil {
+			err := fmt.Errorf("error scanning the database: %v", err)
+			toolkit.LogError(r, err)
+			response.Res(w, "error", http.StatusInternalServerError, err.Error())
+			return
+		}
+		bppPhotoList = append(bppPhotoList, bppPhoto)
+	}
+
+	response.Res(w, "success", http.StatusOK, bppPhotoList)
 }
