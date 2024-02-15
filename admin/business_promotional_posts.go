@@ -11,137 +11,260 @@ import (
 	"time"
 
 	"Tahlilchi.uz/db"
+	"Tahlilchi.uz/model"
 	"Tahlilchi.uz/response"
+	"Tahlilchi.uz/toolkit"
 	"github.com/gorilla/mux"
 	"github.com/lib/pq"
 )
 
 func addBusinessPromotionalPost(w http.ResponseWriter, r *http.Request) {
-	// Parse the request body
-	err := r.ParseMultipartForm(30 << 20) // 30 MB
+	// parse multipart form
+	// maxMemory is 100MB
+	err := r.ParseMultipartForm(100 << 20)
 	if err != nil {
-		log.Printf("%v: %v", r.URL, err)
+		toolkit.LogError(r, err)
 		response.Res(w, "error", http.StatusBadRequest, err.Error())
 		return
 	}
 
-	titleLatin := r.FormValue("title_latin")
-	titleCyrillic := r.FormValue("title_cyrillic")
+	// declare a new businessPromotionalPost
+	var businessPromotionalPost model.BusinessPromotionalPost
 
-	if titleLatin == "" || titleCyrillic == "" {
-		log.Printf("%v: title_latin: %v; title_cyrillic: %v", r.URL, titleLatin, titleCyrillic)
-		response.Res(w, "error", http.StatusBadRequest, "title_latin and title_cyrillic are required fields")
+	// title_latin
+	titleLatin := r.FormValue("title_latin")
+	if titleLatin == "" {
+		toolkit.LogError(r, fmt.Errorf("title_latin is empty"))
+		response.Res(w, "error", http.StatusBadRequest, "title_latin is empty")
 		return
 	}
+	businessPromotionalPost.TitleLatin = titleLatin
 
+	// description_latin
 	descriptionLatin := r.FormValue("description_latin")
+	if descriptionLatin != "" {
+		businessPromotionalPost.DescriptionLatin = descriptionLatin
+	}
+
+	// title_cyrillic
+	titleCyrillic := r.FormValue("title_cyrillic")
+	if titleCyrillic == "" {
+		toolkit.LogError(r, fmt.Errorf("title_cyrillic is empty"))
+		response.Res(w, "error", http.StatusBadRequest, "title_cyrillic is empty")
+		return
+	}
+	businessPromotionalPost.TitleCyrillic = titleCyrillic
+
+	// description_cyrillic
 	descriptionCyrillic := r.FormValue("description_cyrillic")
-
-	// Get the photos files
-	photos := r.MultipartForm.File["photos"]
-	if len(photos) == 0 {
-		photos = nil
+	if descriptionCyrillic != "" {
+		businessPromotionalPost.DescriptionCyrillic = descriptionCyrillic
 	}
 
-	var photosForDb bytes.Buffer
-
-	for _, fh := range photos {
-		if fh.Size > 2<<20 {
-			log.Printf("%v: photo size exceeds 2MB limit: %v", r.URL, fh.Size)
-			response.Res(w, "error", http.StatusBadRequest, "photo size exceeds 2MB limit")
-			return
-		} else {
-			file, _ := fh.Open()
-			io.Copy(&photosForDb, file)
-			file.Close()
-		}
-	}
-
-	// Get the videos files
-	videos := r.MultipartForm.File["videos"]
-	if len(videos) == 0 {
-		videos = nil
-	}
-
-	var videosForDB bytes.Buffer
-
-	for _, fh := range videos {
-		if fh.Size > 6<<20 {
-			log.Printf("%v: video size exceeds 6MB limit: %v", r.URL, fh.Size)
-			response.Res(w, "error", http.StatusBadRequest, "video size exceeds 6MB limit")
-			return
-		} else {
-			file, _ := fh.Open()
-			io.Copy(&videosForDB, file)
-			file.Close()
-		}
-	}
-
-	// Get the cover_image file
-	coverImage, coverImageHeader, err := r.FormFile("cover_image")
-	if err != nil {
-		if err == http.ErrMissingFile {
-			coverImage = nil
-		} else {
-			log.Printf("%v: cover_image error: %v", r.URL, err)
-			response.Res(w, "error", http.StatusBadRequest, "cover_image error")
+	// photos
+	photoArray := r.MultipartForm.File["photo"]
+	for _, fh := range photoArray {
+		if fh.Size > 10<<20 {
+			err := fmt.Errorf("photo %v size exceeds 10MB limit: %v", fh.Filename, fh.Size)
+			toolkit.LogError(r, err)
+			response.Res(w, "error", http.StatusBadRequest, err.Error())
 			return
 		}
-	}
-
-	var coverImageForDB []byte = nil
-
-	if coverImage != nil {
-		if coverImageHeader.Size > 1<<20 {
-			log.Printf("%v: cover_image size exceeds 1MB limit: %v", r.URL, coverImageHeader.Size)
-			response.Res(w, "error", http.StatusBadRequest, "cover_image size exceeds 1MB limit")
+		// check if file is image using http.DetectContentType
+		contentType := fh.Header.Get("Content-Type")
+		if contentType[:5] != "image" {
+			err := fmt.Errorf("photo %v is not an image: %v", fh.Filename, contentType)
+			toolkit.LogError(r, err)
+			response.Res(w, "error", http.StatusBadRequest, err.Error())
 			return
 		}
-		coverImageForDB, _ = io.ReadAll(coverImage)
-		coverImage.Close()
+		file, err := fh.Open()
+		if err != nil {
+			err := fmt.Errorf("error opening photo %v: %v", fh.Filename, err)
+			toolkit.LogError(r, err)
+			response.Res(w, "error", http.StatusBadRequest, err.Error())
+			return
+		}
+		defer file.Close()
+		photo, err := io.ReadAll(file)
+		if err != nil {
+			err := fmt.Errorf("error reading photo %v: %v", fh.Filename, err)
+			toolkit.LogError(r, err)
+			response.Res(w, "error", http.StatusBadRequest, err.Error())
+			return
+		}
+		businessPromotionalPost.Photos = append(businessPromotionalPost.Photos, model.BusinessPromotionalPostPhoto{FileName: fh.Filename, File: photo})
 	}
 
+	// videoArray
+	// each video is string
+	videos := r.MultipartForm.Value["video"]
+	businessPromotionalPost.Videos = videos
+
+	// cover_image
+	_, coverImageHeader, err := r.FormFile("cover_image")
+	if err != nil && err != http.ErrMissingFile {
+		toolkit.LogError(r, err)
+		response.Res(w, "error", http.StatusBadRequest, err.Error())
+		return
+	} else if err == http.ErrMissingFile {
+	} else {
+		if coverImageHeader.Size > 10<<20 {
+			err := fmt.Errorf("cover_image %v size exceeds 10MB limit: %v", coverImageHeader.Filename, coverImageHeader.Size)
+			toolkit.LogError(r, err)
+			response.Res(w, "error", http.StatusBadRequest, err.Error())
+			return
+		}
+		contentType := coverImageHeader.Header.Get("Content-Type")
+		if contentType[:5] != "image" {
+			err := fmt.Errorf("cover_image %v is not an image: %v", coverImageHeader.Filename, contentType)
+			toolkit.LogError(r, err)
+			response.Res(w, "error", http.StatusBadRequest, err.Error())
+			return
+		}
+		file, err := coverImageHeader.Open()
+		if err != nil {
+			err := fmt.Errorf("error opening cover_image %v: %v", coverImageHeader.Filename, err)
+			toolkit.LogError(r, err)
+			response.Res(w, "error", http.StatusBadRequest, err.Error())
+			return
+		}
+		defer file.Close()
+		coverImage, err := io.ReadAll(file)
+		if err != nil {
+			err := fmt.Errorf("error reading cover_image %v: %v", coverImageHeader.Filename, err)
+			toolkit.LogError(r, err)
+			response.Res(w, "error", http.StatusBadRequest, err.Error())
+			return
+		}
+		businessPromotionalPost.CoverImage = coverImage
+	}
+
+	// expiration
 	expiration := r.FormValue("expiration")
 	expirationValid := checkExpiration(expiration)
 	if !expirationValid {
-		log.Printf("%v: FormValue(\"expiration\") valid: %v", r.URL, expirationValid)
-		response.Res(w, "error", http.StatusBadRequest, "expiration value is invalid")
+		err := fmt.Errorf("expiration value %v is invalid", expiration)
+		toolkit.LogError(r, err)
+		response.Res(w, "error", http.StatusBadRequest, err.Error())
 		return
 	}
-	var expirationForDB time.Time
 	switch expiration {
 	case "1 day":
-		expirationForDB = time.Now().UTC().Add(24 * time.Hour)
+		businessPromotionalPost.Expiration = time.Now().UTC().Add(24 * time.Hour).String()
 	case "1 week":
-		expirationForDB = time.Now().UTC().Add(7 * 24 * time.Hour)
+		businessPromotionalPost.Expiration = time.Now().UTC().Add(7 * 24 * time.Hour).String()
 	case "1 month":
-		expirationForDB = time.Now().UTC().AddDate(0, 1, 0)
+		businessPromotionalPost.Expiration = time.Now().UTC().AddDate(0, 1, 0).String()
 	}
 
+	// partner
 	partner := r.FormValue("partner")
 	if partner == "" {
-		log.Printf("%v: partner: %v", r.URL, partner)
-		response.Res(w, "error", http.StatusBadRequest, "partner is required field")
+		err := fmt.Errorf("partner is empty")
+		toolkit.LogError(r, err)
+		response.Res(w, "error", http.StatusBadRequest, err.Error())
 		return
 	}
+	businessPromotionalPost.Partner = partner
 
-	db, err := db.DB()
+	// Open a connection to the database
+	database, err := db.DB()
 	if err != nil {
-		log.Printf("%v: db connection error: %v", r.URL, err)
+		toolkit.LogError(r, fmt.Errorf("database connection error: %v", err))
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
-	defer db.Close()
+	defer database.Close()
 
-	_, err = db.Exec(`INSERT INTO business_promotional_posts (title_latin, description_latin, title_cyrillic, description_cyrillic, photos, videos, cover_image, expiration, partner) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-		titleLatin, descriptionLatin, titleCyrillic, descriptionCyrillic, pq.Array([][]byte{photosForDb.Bytes()}), pq.Array([][]byte{videosForDB.Bytes()}), coverImageForDB, expirationForDB, partner)
+	// Start a new transaction
+	tx, err := database.Begin()
 	if err != nil {
-		log.Printf("%v: db execution error: %v", r.URL, err)
+		toolkit.LogError(r, fmt.Errorf("start a new transaction: %v", err))
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
 
-	response.Res(w, "success", http.StatusCreated, "Article Added")
+	// Prepare the SQL statement: add into business_promotional_posts: title_latin, description_latin, title_cyrillic, description_cyrillic, videos, cover_image, expiration, partner returning id
+	stmt, err := tx.Prepare("INSERT INTO business_promotional_posts (title_latin, description_latin, title_cyrillic, description_cyrillic, videos, cover_image, expiration, partner) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id")
+	if err != nil {
+		toolkit.LogError(r, fmt.Errorf("prepare the SQL statement: %v", err))
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	// Execute the SQL statement
+	err = stmt.QueryRow(businessPromotionalPost.TitleLatin, businessPromotionalPost.DescriptionLatin, businessPromotionalPost.TitleCyrillic, businessPromotionalPost.DescriptionCyrillic, pq.Array(businessPromotionalPost.Videos), businessPromotionalPost.CoverImage, businessPromotionalPost.Expiration, businessPromotionalPost.Partner).Scan(&businessPromotionalPost.ID)
+	if err != nil {
+		toolkit.LogError(r, fmt.Errorf("execute the SQL statement: %v", err))
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	// Commit the transaction
+	err = tx.Commit()
+	if err != nil {
+		toolkit.LogError(r, fmt.Errorf("commit the transaction: %v", err))
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	// add business promotional post photos into bpp_photos
+	for _, photo := range businessPromotionalPost.Photos {
+		// Start a new transaction
+		tx, err := database.Begin()
+		if err != nil {
+			toolkit.LogError(r, fmt.Errorf("start a new transaction: %v", err))
+			// delete business promotional post from business_promotional_posts
+			_, err = database.Exec("DELETE FROM business_promotional_posts WHERE id = $1", businessPromotionalPost.ID)
+			if err != nil {
+				toolkit.LogError(r, fmt.Errorf("delete business promotional post %v from business_promotional_posts: %v", businessPromotionalPost.ID, err))
+			}
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+
+		// Prepare the SQL statement: add into bpp_photos: bpp, file_name, file
+		stmt, err := tx.Prepare("INSERT INTO bpp_photos (bpp, file_name, file) VALUES ($1, $2, $3)")
+		if err != nil {
+			toolkit.LogError(r, fmt.Errorf("prepare the SQL statement: %v", err))
+			// delete business promotional post from business_promotional_posts
+			_, err = database.Exec("DELETE FROM business_promotional_posts WHERE id = $1", businessPromotionalPost.ID)
+			if err != nil {
+				toolkit.LogError(r, fmt.Errorf("delete business promotional post %v from business_promotional_posts: %v", businessPromotionalPost.ID, err))
+			}
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+
+		// Execute the SQL statement
+		_, err = stmt.Exec(businessPromotionalPost.ID, photo.FileName, photo.File)
+		if err != nil {
+			toolkit.LogError(r, fmt.Errorf("execute the SQL statement: %v", err))
+			// delete business promotional post from business_promotional_posts
+			_, err = database.Exec("DELETE FROM business_promotional_posts WHERE id = $1", businessPromotionalPost.ID)
+			if err != nil {
+				toolkit.LogError(r, fmt.Errorf("delete business promotional post %v from business_promotional_posts: %v", businessPromotionalPost.ID, err))
+			}
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+
+		// Commit the transaction
+		err = tx.Commit()
+		if err != nil {
+			toolkit.LogError(r, fmt.Errorf("commit the transaction: %v", err))
+			// delete business promotional post from business_promotional_posts
+			_, err = database.Exec("DELETE FROM business_promotional_posts WHERE id = $1", businessPromotionalPost.ID)
+			if err != nil {
+				toolkit.LogError(r, fmt.Errorf("delete business promotional post %v from business_promotional_posts: %v", businessPromotionalPost.ID, err))
+			}
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+	}
+
+	response.Res(w, "success", http.StatusCreated, "business promotional post added")
 }
 
 func checkExpiration(expiration string) bool {

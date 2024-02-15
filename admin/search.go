@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"Tahlilchi.uz/db"
+	"Tahlilchi.uz/model"
 	"Tahlilchi.uz/response"
 	"github.com/gorilla/mux"
 	"github.com/lib/pq"
@@ -124,9 +125,9 @@ func searchBusinessPromotional(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
-	var businessPromotionalPosts []BusinessPromotionalPost
+	var businessPromotionalPosts []model.BusinessPromotionalPost
 	for rows.Next() {
-		var businessPromotionalPost BusinessPromotionalPost
+		var businessPromotionalPost model.BusinessPromotionalPost
 		var videos pq.StringArray
 		err := rows.Scan(&businessPromotionalPost.ID, &businessPromotionalPost.TitleLatin, &businessPromotionalPost.DescriptionLatin, &businessPromotionalPost.TitleCyrillic, &businessPromotionalPost.DescriptionCyrillic, &videos, &businessPromotionalPost.Expiration, &businessPromotionalPost.CreatedAt, &businessPromotionalPost.UpdatedAt, &businessPromotionalPost.Archived, &businessPromotionalPost.Partner, &businessPromotionalPost.Completed)
 		if err != nil {
@@ -139,22 +140,6 @@ func searchBusinessPromotional(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.Res(w, "success", http.StatusOK, businessPromotionalPosts)
-}
-
-// BusinessPromotionalPost is the model for the business_promotional_posts table.
-type BusinessPromotionalPost struct {
-	ID                  int            `json:"id"`
-	TitleLatin          string         `json:"title_latin"`
-	DescriptionLatin    string         `json:"description_latin"`
-	TitleCyrillic       string         `json:"title_cyrillic"`
-	DescriptionCyrillic string         `json:"description_cyrillic"`
-	Videos              pq.StringArray `json:"videos"`
-	Expiration          string         `json:"expiration"`
-	CreatedAt           string         `json:"created_at"`
-	UpdatedAt           string         `json:"updated_at"`
-	Archived            bool           `json:"archived"`
-	Partner             string         `json:"partner"`
-	Completed           bool           `json:"completed"`
 }
 
 // searchENewspaper is the handler for the /admin/search/e-newspaper endpoint.
