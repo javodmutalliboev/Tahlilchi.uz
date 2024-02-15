@@ -708,7 +708,7 @@ func CheckAndArchiveExpiredBPPosts() {
 	}
 
 	// Prepare the SQL statement
-	stmt, err := tx.Prepare("UPDATE business_promotional_posts SET archived = true WHERE expiration < $1")
+	stmt, err := tx.Prepare("UPDATE business_promotional_posts SET archived = true WHERE expiration <= $1")
 	if err != nil {
 		log.Printf("checkAndArchiveExpiredBPPosts(): Prepare the SQL statement: error: %v", err)
 		return
