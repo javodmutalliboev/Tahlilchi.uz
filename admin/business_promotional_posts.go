@@ -1,7 +1,6 @@
 package admin
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"log"
@@ -345,7 +344,7 @@ func editBusinessPromotionalPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse multipart form
-	err = r.ParseMultipartForm(15 << 20)
+	err = r.ParseMultipartForm(100 << 20) // maxMemory is 100MB
 	if err != nil {
 		log.Printf("%v: edit business promotional post: %v", r.URL, err)
 		response.Res(w, "error", http.StatusBadRequest, err.Error())
@@ -364,7 +363,7 @@ func editBusinessPromotionalPost(w http.ResponseWriter, r *http.Request) {
 	if title_latin != "" {
 		sqlStatement := `
 			UPDATE business_promotional_posts
-			SET title_latin = $1, edited_at = NOW()
+			SET title_latin = $1, updated_at = NOW()
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, title_latin, id)
@@ -379,7 +378,7 @@ func editBusinessPromotionalPost(w http.ResponseWriter, r *http.Request) {
 	if description_latin != "" {
 		sqlStatement := `
 			UPDATE business_promotional_posts
-			SET description_latin = $1, edited_at = NOW()
+			SET description_latin = $1, updated_at = NOW()
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, description_latin, id)
@@ -394,7 +393,7 @@ func editBusinessPromotionalPost(w http.ResponseWriter, r *http.Request) {
 	if title_cyrillic != "" {
 		sqlStatement := `
 			UPDATE business_promotional_posts
-			SET title_cyrillic = $1, edited_at = NOW()
+			SET title_cyrillic = $1, updated_at = NOW()
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, title_cyrillic, id)
@@ -409,7 +408,7 @@ func editBusinessPromotionalPost(w http.ResponseWriter, r *http.Request) {
 	if description_cyrillic != "" {
 		sqlStatement := `
 			UPDATE business_promotional_posts
-			SET description_cyrillic = $1, edited_at = NOW()
+			SET description_cyrillic = $1, updated_at = NOW()
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, description_cyrillic, id)
@@ -420,65 +419,15 @@ func editBusinessPromotionalPost(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	photos := r.MultipartForm.File["photos"]
-	if len(photos) == 0 {
-		photos = nil
-	}
-
-	var photosForDb bytes.Buffer
-
-	for _, fh := range photos {
-		if fh.Size > 2<<20 {
-			log.Printf("%v: photo size exceeds 2MB limit: %v", r.URL, fh.Size)
-			response.Res(w, "error", http.StatusBadRequest, "photo size exceeds 2MB limit")
-			return
-		} else {
-			file, _ := fh.Open()
-			io.Copy(&photosForDb, file)
-			file.Close()
-		}
-	}
-
-	if photosForDb.Len() > 0 {
+	// videos
+	videos := r.Form["video"]
+	if len(videos) > 0 {
 		sqlStatement := `
 			UPDATE business_promotional_posts
-			SET photos = $1, edited_at = NOW()
+			SET videos = $1, updated_at = NOW()
 			WHERE id = $2;
 		`
-		_, err = db.Exec(sqlStatement, pq.Array([][]byte{photosForDb.Bytes()}), id)
-		if err != nil {
-			log.Printf("%v: writing photos into db: %v", r.URL, err)
-			response.Res(w, "error", http.StatusInternalServerError, "server error")
-			return
-		}
-	}
-
-	videos := r.MultipartForm.File["videos"]
-	if len(videos) == 0 {
-		videos = nil
-	}
-
-	var videosForDB bytes.Buffer
-
-	for _, fh := range videos {
-		if fh.Size > 6<<20 {
-			log.Printf("%v: video size exceeds 6MB limit: %v", r.URL, fh.Size)
-			response.Res(w, "error", http.StatusBadRequest, "video size exceeds 6MB limit")
-			return
-		} else {
-			file, _ := fh.Open()
-			io.Copy(&videosForDB, file)
-			file.Close()
-		}
-	}
-
-	if videosForDB.Len() > 0 {
-		sqlStatement := `
-			UPDATE business_promotional_posts
-			SET videos = $1, edited_at = NOW()
-			WHERE id = $2;
-		`
-		_, err = db.Exec(sqlStatement, pq.Array([][]byte{videosForDB.Bytes()}), id)
+		_, err = db.Exec(sqlStatement, pq.Array(videos), id)
 		if err != nil {
 			log.Printf("%v: writing videos into db: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -486,33 +435,47 @@ func editBusinessPromotionalPost(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	coverImage, coverImageHeader, err := r.FormFile("cover_image")
-	if err != nil {
-		if err == http.ErrMissingFile {
-			coverImage = nil
-		} else {
-			log.Printf("%v: cover_image error: %v", r.URL, err)
-			response.Res(w, "error", http.StatusBadRequest, "cover_image error")
+	_, coverImageHeader, err := r.FormFile("cover_image")
+	if err != nil && err != http.ErrMissingFile {
+		log.Printf("%v: FormFile(\"cover_image\"): %v", r.URL, err)
+		response.Res(w, "error", http.StatusBadRequest, err.Error())
+		return
+	} else if err == http.ErrMissingFile {
+	} else {
+		if coverImageHeader.Size > 10<<20 {
+			err := fmt.Errorf("cover_image %v size exceeds 10MB limit: %v", coverImageHeader.Filename, coverImageHeader.Size)
+			toolkit.LogError(r, err)
+			response.Res(w, "error", http.StatusBadRequest, err.Error())
 			return
 		}
-	}
-
-	var coverImageForDB []byte = nil
-
-	if coverImage != nil {
-		if coverImageHeader.Size > 1<<20 {
-			log.Printf("%v: cover_image size exceeds 1MB limit: %v", r.URL, coverImageHeader.Size)
-			response.Res(w, "error", http.StatusBadRequest, "cover_image size exceeds 1MB limit")
+		contentType := coverImageHeader.Header.Get("Content-Type")
+		if contentType[:5] != "image" {
+			err := fmt.Errorf("cover_image %v is not an image: %v", coverImageHeader.Filename, contentType)
+			toolkit.LogError(r, err)
+			response.Res(w, "error", http.StatusBadRequest, err.Error())
 			return
 		}
-		coverImageForDB, _ = io.ReadAll(coverImage)
-		coverImage.Close()
+		file, err := coverImageHeader.Open()
+		if err != nil {
+			err := fmt.Errorf("error opening cover_image %v: %v", coverImageHeader.Filename, err)
+			toolkit.LogError(r, err)
+			response.Res(w, "error", http.StatusBadRequest, err.Error())
+			return
+		}
+		defer file.Close()
+		coverImage, err := io.ReadAll(file)
+		if err != nil {
+			err := fmt.Errorf("error reading cover_image %v: %v", coverImageHeader.Filename, err)
+			toolkit.LogError(r, err)
+			response.Res(w, "error", http.StatusBadRequest, err.Error())
+			return
+		}
 		sqlStatement := `
 			UPDATE business_promotional_posts
-			SET cover_image = $1, edited_at = NOW()
+			SET cover_image = $1, updated_at = NOW()
 			WHERE id = $2;
 		`
-		_, err = db.Exec(sqlStatement, coverImageForDB, id)
+		_, err = db.Exec(sqlStatement, coverImage, id)
 		if err != nil {
 			log.Printf("%v: writing cover_image into db: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -539,7 +502,7 @@ func editBusinessPromotionalPost(w http.ResponseWriter, r *http.Request) {
 		}
 		sqlStatement := `
 			UPDATE business_promotional_posts
-			SET expiration = $1, edited_at = NOW()
+			SET expiration = $1, updated_at = NOW()
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, expirationForDB, id)
@@ -554,7 +517,7 @@ func editBusinessPromotionalPost(w http.ResponseWriter, r *http.Request) {
 	if partner != "" {
 		sqlStatement := `
 			UPDATE business_promotional_posts
-			SET partner = $1, edited_at = NOW()
+			SET partner = $1, updated_at = NOW()
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, partner, id)
