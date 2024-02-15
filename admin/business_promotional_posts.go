@@ -764,69 +764,73 @@ func getBusinessPromotionalPostCount(w http.ResponseWriter, r *http.Request) {
 }
 
 func getBusinessPromotionalPosts(w http.ResponseWriter, r *http.Request) {
-	// Parse the page number from the query parameters
-	pageStr, ok := r.URL.Query()["page"]
-	if !ok || len(pageStr[0]) < 1 {
-		log.Printf("%v: Url Param 'page' is missing. Setting default value to 1.", r.URL)
-		pageStr = []string{"1"}
+	// page, limit query parameters
+	page, limit, err := toolkit.GetPageLimit(r)
+	if err != nil {
+		toolkit.LogError(r, fmt.Errorf("getBusinessPromotionalPosts(): %v", err))
+		response.Res(w, "error", http.StatusBadRequest, err.Error())
+		return
 	}
-	page, _ := strconv.Atoi(pageStr[0])
 
-	// Parse the limit from the query parameters
-	limitStr, ok := r.URL.Query()["limit"]
-	if !ok || len(limitStr[0]) < 1 {
-		log.Printf("%v: Url Param 'limit' is missing. Setting default value to 10.", r.URL)
-		limitStr = []string{"10"}
-	}
-	limit, _ := strconv.Atoi(limitStr[0])
-
-	// Calculate the starting index
-	var start = (page - 1) * limit
-
+	// Open a connection to the database
 	database, err := db.DB()
 	if err != nil {
-		log.Printf("%v: error: %v", r.URL, err)
+		toolkit.LogError(r, fmt.Errorf("getBusinessPromotionalPosts(): %v", err))
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
 	defer database.Close()
 
-	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, videos, expiration, created_at, updated_at, archived, partner, completed FROM business_promotional_posts ORDER BY id DESC LIMIT $1 OFFSET $2", limit, start)
+	// Prepare the SQL statement: select id, title_latin, description_latin, title_cyrillic, description_cyrillic, videos, expiration, created_at, updated_at, archived, partner, completed from business_promotional_posts
+	stmt, err := database.Prepare("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, videos, expiration, created_at, updated_at, archived, partner, completed FROM business_promotional_posts ORDER BY created_at DESC LIMIT $1 OFFSET $2")
 	if err != nil {
-		log.Printf("%v: error: %v", r.URL, err)
+		toolkit.LogError(r, fmt.Errorf("getBusinessPromotionalPosts(): %v", err))
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer stmt.Close()
+
+	// Execute the SQL statement
+	rows, err := stmt.Query(limit, (page-1)*limit)
+	if err != nil {
+		toolkit.LogError(r, fmt.Errorf("getBusinessPromotionalPosts(): %v", err))
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
 	defer rows.Close()
 
-	var bpPosts []bpPost
+	// variable business promotional post list response
+	var bppListResponse model.BusinessPromotionalPostListResponse
 	for rows.Next() {
-		var bpp bpPost
-		err := rows.Scan(&bpp.ID, &bpp.TitleLatin, &bpp.DescriptionLatin, &bpp.TitleCyrillic, &bpp.DescriptionCyrillic, pq.Array(&bpp.Videos), &bpp.Expiration, &bpp.CreatedAt, &bpp.UpdatedAt, &bpp.Archived, &bpp.Partner, &bpp.Completed)
+		var bpp model.BusinessPromotionalPost
+		err = rows.Scan(&bpp.ID, &bpp.TitleLatin, &bpp.DescriptionLatin, &bpp.TitleCyrillic, &bpp.DescriptionCyrillic, pq.Array(&bpp.Videos), &bpp.Expiration, &bpp.CreatedAt, &bpp.UpdatedAt, &bpp.Archived, &bpp.Partner, &bpp.Completed)
 		if err != nil {
-			log.Printf("%v: error: %v", r.URL, err)
+			toolkit.LogError(r, fmt.Errorf("getBusinessPromotionalPosts(): %v", err))
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
 			return
 		}
-		bpPosts = append(bpPosts, bpp)
+		bppListResponse.BPPList = append(bppListResponse.BPPList, bpp)
 	}
 
-	response.Res(w, "success", http.StatusOK, bpPosts)
-}
+	// set business promotional post list response Previous
+	if page > 1 {
+		bppListResponse.Previous = true
+	}
 
-type bpPost struct {
-	ID                  int      `json:"id"`
-	TitleLatin          string   `json:"title_latin"`
-	DescriptionLatin    string   `json:"description_latin"`
-	TitleCyrillic       string   `json:"title_cyrillic"`
-	DescriptionCyrillic string   `json:"description_cyrillic"`
-	Videos              []string `json:"videos"`
-	Expiration          string   `json:"expiration"`
-	CreatedAt           string   `json:"created_at"`
-	UpdatedAt           string   `json:"updated_at"`
-	Archived            bool     `json:"archived"`
-	Partner             string   `json:"partner"`
-	Completed           bool     `json:"completed"`
+	var count int
+	err = database.QueryRow("SELECT COUNT(id) FROM business_promotional_posts").Scan(&count)
+	if err != nil {
+		toolkit.LogError(r, fmt.Errorf("getBusinessPromotionalPosts(): %v", err))
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	// set business promotional post list response Next
+	if count > page*limit {
+		bppListResponse.Next = true
+	}
+
+	response.Res(w, "success", http.StatusOK, bppListResponse)
 }
 
 // businessPromotionalPostCompleted is a handler to make business promotional post completed field true/false

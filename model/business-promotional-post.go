@@ -2,6 +2,12 @@ package model
 
 import "time"
 
+type BusinessPromotionalPostListResponse struct {
+	BPPList  []BusinessPromotionalPost `json:"bpp_list"`
+	Previous bool                      `json:"previous"`
+	Next     bool                      `json:"next"`
+}
+
 type BusinessPromotionalPost struct {
 	ID                  int                            `json:"id"`
 	TitleLatin          string                         `json:"title_latin"`
