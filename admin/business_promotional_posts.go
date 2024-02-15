@@ -561,29 +561,39 @@ func deleteBPPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db, err := db.DB()
+	database, err := db.DB()
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
-	defer db.Close()
+	defer database.Close()
 
-	stmt, err := db.Prepare("DELETE FROM business_promotional_posts WHERE id=$1")
+	// first delete photos from bpp_photos
+	_, err = database.Exec("DELETE FROM bpp_photos WHERE bpp = $1", id)
+	if err != nil {
+		log.Printf("%v: delete business promotional post photos: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	// Prepare the SQL statement
+	stmt, err := database.Prepare("DELETE FROM business_promotional_posts WHERE id=$1")
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
+	defer stmt.Close()
 
 	_, err = stmt.Exec(id)
 	if err != nil {
-		log.Printf("%v: error: %v", r.URL, err)
+		log.Printf("%v: delete business promotional post: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
 
-	response.Res(w, "success", http.StatusOK, "deleted")
+	response.Res(w, "success", http.StatusOK, "business promotional post deleted")
 }
 
 func archiveBPPost(w http.ResponseWriter, r *http.Request) {
