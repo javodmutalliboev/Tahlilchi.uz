@@ -752,7 +752,7 @@ func getBusinessPromotionalPostCount(w http.ResponseWriter, r *http.Request) {
 	defer database.Close()
 
 	var count int
-	query := fmt.Sprintf("SELECT COUNT(*) FROM business_promotional_posts WHERE created_at > current_date - interval '1 %s'", period)
+	query := fmt.Sprintf("SELECT COUNT(id) FROM business_promotional_posts WHERE created_at > current_date - interval '1 %s'", period)
 	err = database.QueryRow(query).Scan(&count)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
@@ -1182,4 +1182,58 @@ func deleteBusinessPromotionalPostPhoto(w http.ResponseWriter, r *http.Request) 
 	}
 
 	response.Res(w, "success", http.StatusOK, "deleted")
+}
+
+// getBusinessPromotionalPostCoverImage is a handler to get cover image of business promotional post
+func getBusinessPromotionalPostCoverImage(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	exists, err := bpPostExists(id)
+	if err != nil {
+		log.Printf("%v: getBusinessPromotionalPostCoverImage bpPostExists(id): %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if !*exists {
+		log.Printf("%v: getBusinessPromotionalPostCoverImage bpPostExists(id): %v", r.URL, *exists)
+		response.Res(w, "error", http.StatusBadRequest, "Cannot get cover image of non existent business promotional post")
+		return
+	}
+
+	archived, err := bpPostIsArchived(id)
+	if err != nil {
+		log.Printf("%v: getBusinessPromotionalPostCoverImage bpPostIsArchived(id): %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if *archived {
+		log.Printf("%v: getBusinessPromotionalPostCoverImage bpPostIsArchived(id): %v", r.URL, *archived)
+		response.Res(w, "error", http.StatusBadRequest, "Cannot get cover image of archived business promotional post")
+		return
+	}
+
+	// Open a connection to the database
+	database, err := db.DB()
+	if err != nil {
+		log.Printf("%v: getBusinessPromotionalPostCoverImage: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	var coverImage []byte
+	err = database.QueryRow("SELECT cover_image FROM business_promotional_posts WHERE id = $1", id).Scan(&coverImage)
+	if err != nil {
+		log.Printf("%v: getBusinessPromotionalPostCoverImage: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	imageType := http.DetectContentType(coverImage)
+	w.Header().Set("Content-Type", imageType)
+	w.Header().Set("Content-Length", strconv.Itoa(len(coverImage)))
+	w.Write(coverImage)
 }

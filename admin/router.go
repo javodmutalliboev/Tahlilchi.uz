@@ -131,6 +131,8 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	businessPromotionalPostRouter.HandleFunc("/unarchive/{id}", middleware.Chain(unArchiveBPPost, authPackage.AdminAuth())).Methods("PATCH")
 	// route to make business promotional post completed field true/false
 	businessPromotionalPostRouter.HandleFunc("/completed/{id}", middleware.Chain(businessPromotionalPostCompleted, authPackage.AdminAuth())).Methods("PATCH")
+	// route to get business promotional post cover image
+	businessPromotionalPostRouter.HandleFunc("/{id}/cover_image", middleware.Chain(getBusinessPromotionalPostCoverImage, authPackage.AdminAuth())).Methods("GET")
 
 	// e-newspaper router
 	eNewspaperRouter := adminRouter.PathPrefix("/e-newspaper").Subrouter()
