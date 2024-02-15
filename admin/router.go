@@ -116,6 +116,9 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	businessPromotionalPostPhotoRouter := businessPromotionalPostRouter.PathPrefix("/{id}/photo").Subrouter()
 	// route to add business promotional post photo
 	businessPromotionalPostPhotoRouter.HandleFunc("/add", middleware.Chain(addBusinessPromotionalPostPhoto, authPackage.AdminAuth())).Methods("POST")
+	// route to get business promotional post photo list
+	businessPromotionalPostPhotoRouter.HandleFunc("/list", middleware.Chain(getBusinessPromotionalPostPhotoList, authPackage.AdminAuth())).Methods("GET")
+
 	businessPromotionalPostRouter.HandleFunc("/edit/{id}", middleware.Chain(editBusinessPromotionalPost, authPackage.AdminAuth())).Methods("PATCH")
 	businessPromotionalPostRouter.HandleFunc("/delete/{id}", middleware.Chain(deleteBPPost, authPackage.AdminAuth())).Methods("DELETE")
 	businessPromotionalPostRouter.HandleFunc("/archive/{id}", middleware.Chain(archiveBPPost, authPackage.AdminAuth())).Methods("PATCH")

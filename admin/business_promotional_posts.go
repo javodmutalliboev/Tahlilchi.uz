@@ -528,7 +528,7 @@ func editBusinessPromotionalPost(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	response.Res(w, "success", http.StatusOK, "business promotional post edited")
+	response.Res(w, "success", http.StatusOK, "business promotional post updated")
 }
 
 func deleteBPPost(w http.ResponseWriter, r *http.Request) {
@@ -979,7 +979,79 @@ func addBusinessPromotionalPostPhoto(w http.ResponseWriter, r *http.Request) {
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
 			return
 		}
+
+		// update business promotional post updated_at
+		_, err = db.Exec("UPDATE business_promotional_posts SET updated_at = NOW() WHERE id = $1", id)
+		if err != nil {
+			toolkit.LogError(r, fmt.Errorf("update business promotional post updated_at: %v", err))
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
 	}
 
 	response.Res(w, "success", http.StatusCreated, "photos added")
+}
+
+// getBusinessPromotionalPostPhotoList is a handler to get list of photos of business promotional post
+func getBusinessPromotionalPostPhotoList(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	exists, err := bpPostExists(id)
+	if err != nil {
+		log.Printf("%v: getBusinessPromotionalPostPhotoList bpPostExists(id): %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if !*exists {
+		log.Printf("%v: getBusinessPromotionalPostPhotoList bpPostExists(id): %v", r.URL, *exists)
+		response.Res(w, "error", http.StatusBadRequest, "Cannot get photo list of non existent business promotional post")
+		return
+	}
+
+	archived, err := bpPostIsArchived(id)
+	if err != nil {
+		log.Printf("%v: getBusinessPromotionalPostPhotoList bpPostIsArchived(id): %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if *archived {
+		log.Printf("%v: getBusinessPromotionalPostPhotoList bpPostIsArchived(id): %v", r.URL, *archived)
+		response.Res(w, "error", http.StatusBadRequest, "Cannot get photo list of archived business promotional post")
+		return
+	}
+
+	// Open a connection to the database
+	db, err := db.DB()
+	if err != nil {
+		log.Printf("%v: getBusinessPromotionalPostPhotoList: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer db.Close()
+
+	// select id, bpp, file_name, created_at order by id
+	rows, err := db.Query("SELECT id, bpp, file_name, created_at FROM bpp_photos WHERE bpp = $1 ORDER BY id", id)
+	if err != nil {
+		log.Printf("%v: getBusinessPromotionalPostPhotoList: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer rows.Close()
+
+	var photos []model.BusinessPromotionalPostPhoto
+	for rows.Next() {
+		var photo model.BusinessPromotionalPostPhoto
+		err := rows.Scan(&photo.ID, &photo.BPP, &photo.FileName, &photo.CreatedAt)
+		if err != nil {
+			log.Printf("%v: getBusinessPromotionalPostPhotoList: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+		photos = append(photos, photo)
+	}
+
+	response.Res(w, "success", http.StatusOK, photos)
 }
