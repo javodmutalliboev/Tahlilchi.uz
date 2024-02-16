@@ -1003,7 +1003,7 @@ func deleteArticlePhoto(w http.ResponseWriter, r *http.Request) {
 	defer database.Close()
 
 	// Prepare the SQL statement: delete from article_photos where id = $1
-	stmt, err := database.Prepare("DELETE FROM article_photos WHERE id = $1")
+	stmt, err := database.Prepare("DELETE FROM article_photos WHERE id = $1 AND article = $2")
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -1012,12 +1012,21 @@ func deleteArticlePhoto(w http.ResponseWriter, r *http.Request) {
 	defer stmt.Close()
 
 	// Execute the SQL statement
-	_, err = stmt.Exec(photoID)
+	_, err = stmt.Exec(photoID, id)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
+
+	// update the updated_at column of the articles table
+	_, err = database.Exec("UPDATE articles SET updated_at = NOW() WHERE id = $1", id)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		// no response is sent to the client
+		// do not return
+	}
+
 	// Send the response
 	response.Res(w, "success", http.StatusOK, "Photo deleted")
 }
