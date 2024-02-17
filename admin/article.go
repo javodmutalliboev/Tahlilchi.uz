@@ -329,7 +329,7 @@ func addArticle(w http.ResponseWriter, r *http.Request) {
 
 	// videos
 	videos := r.Form["video"]
-	videosString := "{" + strings.Join(videos, ",") + "}"
+	// videosString := "{" + strings.Join(videos, ",") + "}"
 
 	// cover_image
 	coverImageFile, coverImageHeader, err := r.FormFile("cover_image")
@@ -372,7 +372,7 @@ func addArticle(w http.ResponseWriter, r *http.Request) {
 
 	// tags
 	tags := r.Form["tag"]
-	tagsString := "{" + strings.Join(tags, ",") + "}"
+	// tagsString := "{" + strings.Join(tags, ",") + "}"
 
 	// category
 	categoryStr := r.FormValue("category")
@@ -423,7 +423,7 @@ func addArticle(w http.ResponseWriter, r *http.Request) {
 	// Execute the SQL statement
 	// id is bigint
 	var id int64
-	err = stmt.QueryRow(titleLatin, descriptionLatin, titleCyrillic, descriptionCyrillic, videosString, coverImage, tagsString, category, related).Scan(&id)
+	err = stmt.QueryRow(titleLatin, descriptionLatin, titleCyrillic, descriptionCyrillic, pq.Array(videos), coverImage, pq.Array(tags), category, related).Scan(&id)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
