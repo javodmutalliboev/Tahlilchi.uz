@@ -371,7 +371,7 @@ func addArticle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// tags
-	tags := r.Form["tag"]
+	tags := r.Form["tag[]"]
 	// tagsString := "{" + strings.Join(tags, ",") + "}"
 
 	// category
