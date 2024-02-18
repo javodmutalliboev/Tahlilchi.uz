@@ -12,6 +12,7 @@ import (
 	"Tahlilchi.uz/response"
 	"Tahlilchi.uz/toolkit"
 	"github.com/gorilla/mux"
+	"github.com/lib/pq"
 )
 
 // AppealListResponse
@@ -277,8 +278,6 @@ func createAdminContact(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	socMedAcsString := toolkit.SliceToString(adminContact.SocMedAcs)
-
 	database, err := db.DB()
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
@@ -288,7 +287,7 @@ func createAdminContact(w http.ResponseWriter, r *http.Request) {
 	defer database.Close()
 
 	_, err = database.Exec("INSERT INTO admin_contact (address, soc_med_acs, phone_number, email) VALUES ($1, $2, $3, $4)",
-		adminContact.Address, socMedAcsString, adminContact.PhoneNumber, adminContact.Email)
+		adminContact.Address, pq.Array(adminContact.SocMedAcs), adminContact.PhoneNumber, adminContact.Email)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -370,9 +369,8 @@ func updateAdminContact(w http.ResponseWriter, r *http.Request) {
 				socMedAcs = append(socMedAcs, socMed)
 			}
 		}
-		socMedAcsString := toolkit.SliceToString(socMedAcs)
 
-		_, err := database.Exec("UPDATE admin_contact SET soc_med_acs = $1, updated_at = NOW() WHERE id = $2", socMedAcsString, params["id"])
+		_, err := database.Exec("UPDATE admin_contact SET soc_med_acs = $1, updated_at = NOW() WHERE id = $2", pq.Array(socMedAcs), params["id"])
 		if err != nil {
 			log.Printf("%v: error: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")

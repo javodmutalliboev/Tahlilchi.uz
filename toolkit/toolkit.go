@@ -3,14 +3,9 @@ package toolkit
 import (
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/gorilla/mux"
 )
-
-func SliceToString(data []string) string {
-	return "{" + strings.Join(data, ",") + "}"
-}
 
 func GetID(r *http.Request) (int, error) {
 	// get the id route variable from the request url
