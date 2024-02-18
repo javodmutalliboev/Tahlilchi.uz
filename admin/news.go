@@ -535,9 +535,6 @@ func addNewsPost(w http.ResponseWriter, r *http.Request) {
 		tags = []string{}
 	}
 
-	// Convert tags to PostgreSQL array format
-	tagsString := "{" + strings.Join(tags, ",") + "}"
-
 	var categoryInt sql.NullInt64
 	if category := r.FormValue("category"); category != "" {
 		categoryInt.Int64, err = strconv.ParseInt(category, 10, 64)
@@ -623,7 +620,7 @@ func addNewsPost(w http.ResponseWriter, r *http.Request) {
 	defer db.Close()
 
 	_, err = db.Exec(`INSERT INTO news_posts (title_latin, description_latin, title_cyrillic, description_cyrillic, photo, video, audio, cover_image, tags, category, subcategory, region, top, latest, related) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14 , $15)`,
-		title_latin, description_latin, title_cyrillic, description_cyrillic, photoForDB, video, audioForDB, coverImageForDB, tagsString, categoryInt, subcategoryInt, regionInt, topBool, latestBool, relatedInt)
+		title_latin, description_latin, title_cyrillic, description_cyrillic, photoForDB, video, audioForDB, coverImageForDB, pq.Array(tags), categoryInt, subcategoryInt, regionInt, topBool, latestBool, relatedInt)
 	if err != nil {
 		log.Println(err, categoryInt)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -916,13 +913,12 @@ func editNewsPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if tags, ok := r.Form["tags[]"]; ok {
-		tagsString := "{" + strings.Join(tags, ",") + "}"
 		sqlStatement := `
 			UPDATE news_posts
 			SET tags = $1, updated_at = NOW()
 			WHERE id = $2;
 		`
-		_, err = db.Exec(sqlStatement, tagsString, id)
+		_, err = db.Exec(sqlStatement, pq.Array(tags), id)
 		if err != nil {
 			log.Printf("%v: writing tags into db: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")

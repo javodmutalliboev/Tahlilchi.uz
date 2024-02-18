@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"Tahlilchi.uz/db"
 	"Tahlilchi.uz/response"
@@ -329,7 +328,6 @@ func addArticle(w http.ResponseWriter, r *http.Request) {
 
 	// videos
 	videos := r.Form["video"]
-	// videosString := "{" + strings.Join(videos, ",") + "}"
 
 	// cover_image
 	coverImageFile, coverImageHeader, err := r.FormFile("cover_image")
@@ -372,7 +370,6 @@ func addArticle(w http.ResponseWriter, r *http.Request) {
 
 	// tags
 	tags := r.Form["tag[]"]
-	// tagsString := "{" + strings.Join(tags, ",") + "}"
 
 	// category
 	categoryStr := r.FormValue("category")
@@ -614,13 +611,12 @@ func editArticle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if videos, ok := r.Form["videos"]; ok {
-		videosString := "{" + strings.Join(videos, ",") + "}"
 		sqlStatement := `
 			UPDATE articles
 			SET videos = $1, updated_at = NOW()
 			WHERE id = $2;
 		`
-		_, err = db.Exec(sqlStatement, videosString, id)
+		_, err = db.Exec(sqlStatement, pq.Array(videos), id)
 		if err != nil {
 			log.Printf("%v: writing videos into db: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -678,14 +674,13 @@ func editArticle(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if tags, ok := r.Form["tags"]; ok {
-		tagsString := "{" + strings.Join(tags, ",") + "}"
+	if tags, ok := r.Form["tag[]"]; ok {
 		sqlStatement := `
 			UPDATE articles
 			SET tags = $1, updated_at = NOW()
 			WHERE id = $2;
 		`
-		_, err = db.Exec(sqlStatement, tagsString, id)
+		_, err = db.Exec(sqlStatement, pq.Array(tags), id)
 		if err != nil {
 			log.Printf("%v: writing tags into db: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
