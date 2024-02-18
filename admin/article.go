@@ -1306,19 +1306,20 @@ func getArticleCount(w http.ResponseWriter, r *http.Request) {
 }
 
 type Article struct {
-	ID                  int      `json:"id"`
-	TitleLatin          string   `json:"title_latin"`
-	DescriptionLatin    string   `json:"description_latin"`
-	TitleCyrillic       string   `json:"title_cyrillic"`
-	DescriptionCyrillic string   `json:"description_cyrillic"`
-	Videos              []string `json:"videos"`
-	Tags                []string `json:"tags"`
-	Archived            bool     `json:"archived"`
-	CreatedAt           string   `json:"created_at"`
-	UpdatedAt           string   `json:"updated_at"`
-	Category            *int     `json:"category"`
-	Related             *int     `json:"related"`
-	Completed           bool     `json:"completed"`
+	ID                  int            `json:"id"`
+	TitleLatin          string         `json:"title_latin"`
+	DescriptionLatin    string         `json:"description_latin"`
+	TitleCyrillic       string         `json:"title_cyrillic"`
+	DescriptionCyrillic string         `json:"description_cyrillic"`
+	Photos              []ArticlePhoto `json:"photos"`
+	Videos              []string       `json:"videos"`
+	Tags                []string       `json:"tags"`
+	Archived            bool           `json:"archived"`
+	CreatedAt           string         `json:"created_at"`
+	UpdatedAt           string         `json:"updated_at"`
+	Category            *int           `json:"category"`
+	Related             *int           `json:"related"`
+	Completed           bool           `json:"completed"`
 }
 
 func getArticles(w http.ResponseWriter, r *http.Request) {
@@ -1367,6 +1368,37 @@ func getArticles(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		articles = append(articles, a)
+	}
+
+	// attach each article its photos
+	for i, a := range articles {
+		// Prepare the SQL statement: select id, article, file_name, created_at from article_photos where article = $1
+		rows, err := database.Query("SELECT id, article, file_name, created_at FROM article_photos WHERE article = $1", a.ID)
+		if err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+		defer rows.Close()
+
+		// Create a slice of type ArticlePhoto
+		var photos []ArticlePhoto
+		// Iterate over the rows
+		for rows.Next() {
+			// Create a variable of type ArticlePhoto
+			var p ArticlePhoto
+			// Scan the rows into the variable
+			err := rows.Scan(&p.ID, &p.Article, &p.FileName, &p.CreatedAt)
+			if err != nil {
+				log.Printf("%v: error: %v", r.URL, err)
+				response.Res(w, "error", http.StatusInternalServerError, "server error")
+				return
+			}
+			// Append the variable to the slice
+			photos = append(photos, p)
+		}
+		// attach the photos to the article
+		articles[i].Photos = photos
 	}
 
 	response.Res(w, "success", http.StatusOK, articles)
