@@ -9,6 +9,7 @@ import (
 	"Tahlilchi.uz/response"
 	"Tahlilchi.uz/toolkit"
 	"github.com/gorilla/mux"
+	"github.com/lib/pq"
 )
 
 func getBusinessPromotionalPosts(w http.ResponseWriter, r *http.Request) {
@@ -26,7 +27,7 @@ func getBusinessPromotionalPosts(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		err := fmt.Errorf("error opening a database connection: %v", err)
 		toolkit.LogError(r, err)
-		response.Res(w, "error", http.StatusInternalServerError, err.Error())
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
 	defer database.Close()
@@ -34,13 +35,13 @@ func getBusinessPromotionalPosts(w http.ResponseWriter, r *http.Request) {
 	// get business promotional list response
 	var bppListResponse model.BusinessPromotionalPostListResponse
 
-	// get business promotional posts from the database: select id, title_latin, description_latin, title_cyrillic, description_cyrillic, videos, updated_at where archived is false and completed is true order by id
+	// get business promotional posts from the database: select id, title_latin, description_latin, title_cyrillic, description_cyrillic, videos, updated_at where archived is false and completed is true and expiration is greater than now order by id
 	// perform a database query: table is business_promotional_posts
-	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, videos, updated_at FROM business_promotional_posts WHERE archived = false AND completed = true ORDER BY id LIMIT $1 OFFSET $2", limit, (page-1)*limit)
+	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, videos, updated_at FROM business_promotional_posts WHERE archived = false AND completed = true AND expiration > NOW() ORDER BY id LIMIT $1 OFFSET $2", limit, (page-1)*limit)
 	if err != nil {
 		err := fmt.Errorf("error querying the database: %v", err)
 		toolkit.LogError(r, err)
-		response.Res(w, "error", http.StatusInternalServerError, err.Error())
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
 	defer rows.Close()
@@ -49,11 +50,11 @@ func getBusinessPromotionalPosts(w http.ResponseWriter, r *http.Request) {
 	var bppList []model.BusinessPromotionalPost
 	for rows.Next() {
 		var bpp model.BusinessPromotionalPost
-		err := rows.Scan(&bpp.ID, &bpp.TitleLatin, &bpp.DescriptionLatin, &bpp.TitleCyrillic, &bpp.DescriptionCyrillic, &bpp.Videos, &bpp.UpdatedAt)
+		err := rows.Scan(&bpp.ID, &bpp.TitleLatin, &bpp.DescriptionLatin, &bpp.TitleCyrillic, &bpp.DescriptionCyrillic, pq.Array(&bpp.Videos), &bpp.UpdatedAt)
 		if err != nil {
 			err := fmt.Errorf("error scanning the database: %v", err)
 			toolkit.LogError(r, err)
-			response.Res(w, "error", http.StatusInternalServerError, err.Error())
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
 			return
 		}
 		bppList = append(bppList, bpp)
@@ -69,7 +70,7 @@ func getBusinessPromotionalPosts(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		err := fmt.Errorf("error querying the database: %v", err)
 		toolkit.LogError(r, err)
-		response.Res(w, "error", http.StatusInternalServerError, err.Error())
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
 
@@ -90,7 +91,7 @@ func getBusinessPromotionalPostPhotoList(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		err := fmt.Errorf("error opening a database connection: %v", err)
 		toolkit.LogError(r, err)
-		response.Res(w, "error", http.StatusInternalServerError, err.Error())
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
 	defer database.Close()
@@ -101,7 +102,7 @@ func getBusinessPromotionalPostPhotoList(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		err := fmt.Errorf("error querying the database: %v", err)
 		toolkit.LogError(r, err)
-		response.Res(w, "error", http.StatusInternalServerError, err.Error())
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
 	if !exists {
@@ -120,7 +121,7 @@ func getBusinessPromotionalPostPhotoList(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		err := fmt.Errorf("error querying the database: %v", err)
 		toolkit.LogError(r, err)
-		response.Res(w, "error", http.StatusInternalServerError, err.Error())
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
 	defer rows.Close()
@@ -132,7 +133,7 @@ func getBusinessPromotionalPostPhotoList(w http.ResponseWriter, r *http.Request)
 		if err != nil {
 			err := fmt.Errorf("error scanning the database: %v", err)
 			toolkit.LogError(r, err)
-			response.Res(w, "error", http.StatusInternalServerError, err.Error())
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
 			return
 		}
 		bppPhotoList = append(bppPhotoList, bppPhoto)
@@ -151,7 +152,7 @@ func getBusinessPromotionalPostPhoto(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		err := fmt.Errorf("error opening a database connection: %v", err)
 		toolkit.LogError(r, err)
-		response.Res(w, "error", http.StatusInternalServerError, err.Error())
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
 	defer database.Close()
@@ -162,7 +163,7 @@ func getBusinessPromotionalPostPhoto(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		err := fmt.Errorf("error querying the database: %v", err)
 		toolkit.LogError(r, err)
-		response.Res(w, "error", http.StatusInternalServerError, err.Error())
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
 	if !exists {
@@ -179,7 +180,7 @@ func getBusinessPromotionalPostPhoto(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		err := fmt.Errorf("error querying the database: %v", err)
 		toolkit.LogError(r, err)
-		response.Res(w, "error", http.StatusInternalServerError, err.Error())
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
 
@@ -199,7 +200,7 @@ func getBusinessPromotionalPostCoverImage(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		err := fmt.Errorf("error opening a database connection: %v", err)
 		toolkit.LogError(r, err)
-		response.Res(w, "error", http.StatusInternalServerError, err.Error())
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
 	defer database.Close()
@@ -210,7 +211,7 @@ func getBusinessPromotionalPostCoverImage(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		err := fmt.Errorf("error querying the database: %v", err)
 		toolkit.LogError(r, err)
-		response.Res(w, "error", http.StatusInternalServerError, err.Error())
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
 		return
 	}
 	if !exists {
