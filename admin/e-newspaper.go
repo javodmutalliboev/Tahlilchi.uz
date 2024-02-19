@@ -767,7 +767,7 @@ func getENewspaperList(w http.ResponseWriter, r *http.Request) {
 	}
 	defer database.Close()
 
-	rows, err := database.Query("SELECT id, title_latin, title_cyrillic, created_at, updated_at, archived, completed FROM e_newspapers ORDER BY id DESC LIMIT $1 OFFSET $2", limit, start)
+	rows, err := database.Query("SELECT id, title_latin, title_cyrillic, created_at, updated_at, archived, completed, category FROM e_newspapers ORDER BY id DESC LIMIT $1 OFFSET $2", limit, start)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -778,7 +778,7 @@ func getENewspaperList(w http.ResponseWriter, r *http.Request) {
 	var eNewspapers []ENewspaper
 	for rows.Next() {
 		var eNewspaper ENewspaper
-		err := rows.Scan(&eNewspaper.ID, &eNewspaper.TitleLatin, &eNewspaper.TitleCyrillic, &eNewspaper.CreatedAt, &eNewspaper.UpdatedAt, &eNewspaper.Archived, &eNewspaper.Completed)
+		err := rows.Scan(&eNewspaper.ID, &eNewspaper.TitleLatin, &eNewspaper.TitleCyrillic, &eNewspaper.CreatedAt, &eNewspaper.UpdatedAt, &eNewspaper.Archived, &eNewspaper.Completed, &eNewspaper.Category)
 		if err != nil {
 			log.Printf("%v: error: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -798,6 +798,7 @@ type ENewspaper struct {
 	UpdatedAt     string `json:"updated_at"`
 	Archived      bool   `json:"archived"`
 	Completed     bool   `json:"completed"`
+	Category      int    `json:"category"`
 }
 
 // eNewspaperCompleted is a handler to make e-newspaper completed field true/false
