@@ -148,9 +148,9 @@ func photoGalleryAddPhotos(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		_, err = db.Exec("UPDATE photo_gallery SET edited_at = CURRENT_TIMESTAMP WHERE id = $1", id)
+		_, err = db.Exec("UPDATE photo_gallery SET updated_at = CURRENT_TIMESTAMP WHERE id = $1", id)
 		if err != nil {
-			message := fmt.Sprintf("%v: %v: UPDATE photo_gallery SET edited_at = CURRENT_TIMESTAMP error: %v", r.URL, fileHeader.Filename, err)
+			message := fmt.Sprintf("%v: %v: UPDATE photo_gallery SET updated_at = CURRENT_TIMESTAMP error: %v", r.URL, fileHeader.Filename, err)
 			log.Println(message)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
 			return

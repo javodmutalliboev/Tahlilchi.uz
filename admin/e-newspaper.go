@@ -386,7 +386,7 @@ func editENewspaper(w http.ResponseWriter, r *http.Request) {
 	if title_latin != "" {
 		sqlStatement := `
 			UPDATE e_newspapers
-			SET title_latin = $1, edited_at = NOW() 
+			SET title_latin = $1, updated_at = NOW() 
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, title_latin, id)
@@ -401,7 +401,7 @@ func editENewspaper(w http.ResponseWriter, r *http.Request) {
 	if title_cyrillic != "" {
 		sqlStatement := `
 			UPDATE e_newspapers
-			SET title_cyrillic = $1, edited_at = NOW()
+			SET title_cyrillic = $1, updated_at = NOW()
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, title_cyrillic, id)
@@ -433,7 +433,7 @@ func editENewspaper(w http.ResponseWriter, r *http.Request) {
 		file_latin.Close()
 		sqlStatement := `
 			UPDATE e_newspapers
-			SET file_latin = $1, edited_at = NOW()
+			SET file_latin = $1, updated_at = NOW()
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, fileLatinForDB, id)
@@ -465,7 +465,7 @@ func editENewspaper(w http.ResponseWriter, r *http.Request) {
 		file_cyrillic.Close()
 		sqlStatement := `
 			UPDATE e_newspapers
-			SET file_cyrillic = $1, edited_at = NOW()
+			SET file_cyrillic = $1, updated_at = NOW()
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, fileCyrillicForDB, id)
@@ -497,7 +497,7 @@ func editENewspaper(w http.ResponseWriter, r *http.Request) {
 		cover_image.Close()
 		sqlStatement := `
 			UPDATE e_newspapers
-			SET cover_image = $1, edited_at = NOW()
+			SET cover_image = $1, updated_at = NOW()
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, coverImageForDB, id)
@@ -520,7 +520,7 @@ func editENewspaper(w http.ResponseWriter, r *http.Request) {
 		}
 		sqlStatement := `
 			UPDATE e_newspapers
-			SET category = $1, edited_at = NOW()
+			SET category = $1, updated_at = NOW()
 			WHERE id = $2;
 		`
 		_, err = db.Exec(sqlStatement, categoryInt, id)
