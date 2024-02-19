@@ -610,6 +610,67 @@ func editArticle(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// photos
+	photos := r.MultipartForm.File["photo"]
+	if len(photos) > 0 {
+		for _, fh := range photos {
+			// check whether the file is an image by checking the content type
+			if fh.Header.Get("Content-Type")[:5] != "image" {
+				log.Printf("%v: photo is not an image: %v", r.URL, fh.Header.Get("Content-Type"))
+				response.Res(w, "error", http.StatusBadRequest, "photo is not an image")
+				return
+			}
+			// Check if the file size is greater than 10MB
+			if fh.Size > 10<<20 {
+				log.Printf("%v: photo size exceeds 10MB limit: %v", r.URL, fh.Size)
+				response.Res(w, "error", http.StatusBadRequest, "photo size exceeds 10MB limit")
+				return
+			}
+		}
+		// delete all photos of the article
+		sqlStatement := `
+			DELETE FROM article_photos
+			WHERE article = $1;
+		`
+		_, err = db.Exec(sqlStatement, id)
+		if err != nil {
+			log.Printf("%v: deleting photos from db: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+		// insert new photos
+		for _, fh := range photos {
+			// Read the file
+			file, err := fh.Open()
+			if err != nil {
+				log.Printf("%v: error: %v", r.URL, err)
+				response.Res(w, "error", http.StatusInternalServerError, "server error")
+				return
+			}
+			// defer the closing of the file
+			defer file.Close()
+			// Read the file into a byte slice
+			photo, err := io.ReadAll(file)
+			if err != nil {
+				log.Printf("%v: error: %v", r.URL, err)
+				response.Res(w, "error", http.StatusInternalServerError, "server error")
+				return
+			}
+			// Prepare the SQL statement
+			sqlStatement := `
+				INSERT INTO article_photos(article, file_name, file)
+				VALUES($1, $2, $3);
+			`
+			// Execute the SQL statement
+			_, err = db.Exec(sqlStatement, id, fh.Filename, photo)
+			if err != nil {
+				log.Printf("%v: writing photos into db: %v", r.URL, err)
+				response.Res(w, "error", http.StatusInternalServerError, "server error")
+				return
+			}
+		}
+	}
+
 	if videos, ok := r.Form["videos"]; ok {
 		sqlStatement := `
 			UPDATE articles
