@@ -905,3 +905,43 @@ func getENewspaperFile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Length", strconv.Itoa(len(file)))
 	w.Write(file)
 }
+
+// getENewspaperCoverImage is a handler to get e-newspaper cover image by id
+func getENewspaperCoverImage(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	exists, err := eNewspaperExists(id)
+	if err != nil {
+		log.Printf("%v: eNewspaperExists(id) error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if !*exists {
+		log.Printf("%v: eNewspaperExists(id): %v", r.URL, *exists)
+		response.Res(w, "error", http.StatusNotFound, "e-newspaper not found")
+		return
+	}
+
+	db, err := db.DB()
+	if err != nil {
+		log.Printf("%v: db error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer db.Close()
+
+	var coverImage []byte
+	err = db.QueryRow("SELECT cover_image FROM e_newspapers WHERE id = $1", id).Scan(&coverImage)
+	if err != nil {
+		log.Printf("%v: db error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusBadRequest, err.Error())
+		return
+	}
+
+	contentType := http.DetectContentType(coverImage)
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Content-Length", strconv.Itoa(len(coverImage)))
+	w.Write(coverImage)
+}

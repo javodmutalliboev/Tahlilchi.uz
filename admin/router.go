@@ -159,6 +159,8 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	eNewspaperRouter.HandleFunc("/completed/{id}", middleware.Chain(eNewspaperCompleted, authPackage.AdminAuth())).Methods("PATCH")
 	// route to get /e-newspaper/{id}/file/{alphabet} where file is pdf, alphabet is latin or cyrillic
 	eNewspaperRouter.HandleFunc("/{id}/file/{alphabet}", middleware.Chain(getENewspaperFile, authPackage.AdminAuth())).Methods("GET")
+	// route to get /e-newspaper/{id}/cover_image
+	eNewspaperRouter.HandleFunc("/{id}/cover_image", middleware.Chain(getENewspaperCoverImage, authPackage.AdminAuth())).Methods("GET")
 
 	photoGalleryRouter := adminRouter.PathPrefix("/photo-gallery").Subrouter()
 	photoGalleryRouter.HandleFunc("/add", middleware.Chain(addPhotoGallery, authPackage.AdminAuth())).Methods("POST")
