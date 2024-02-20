@@ -295,7 +295,7 @@ type PhotoGalleryPhoto struct {
 
 // getPhotoGalleryPhoto is a handler to get photo gallery photo
 func getPhotoGalleryPhoto(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Var(r)
+	vars := mux.Vars(r)
 	photo_gallery := vars["id"]
 	id := vars["photo_id"]
 
