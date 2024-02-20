@@ -205,6 +205,27 @@ func getPhotoGalleryList(w http.ResponseWriter, r *http.Request) {
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
 			return
 		}
+
+		var photoGalleryPhotos []PhotoGalleryPhoto
+		photos, err := database.Query("SELECT id, photo_gallery, file_name, created_at FROM photo_gallery_photos WHERE photo_gallery = $1 ORDER BY id", photoGallery.ID)
+		if err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+		defer photos.Close()
+
+		for photos.Next() {
+			var photoGalleryPhoto PhotoGalleryPhoto
+			if err := photos.Scan(&photoGalleryPhoto.ID, &photoGalleryPhoto.PhotoGallery, &photoGalleryPhoto.FileName, &photoGalleryPhoto.CreatedAt); err != nil {
+				log.Printf("%v: error: %v", r.URL, err)
+				response.Res(w, "error", http.StatusInternalServerError, "server error")
+				return
+			}
+			photoGalleryPhotos = append(photoGalleryPhotos, photoGalleryPhoto)
+		}
+		photoGallery.Photos = photoGalleryPhotos
+
 		photoGalleryList = append(photoGalleryList, photoGallery)
 	}
 
@@ -212,11 +233,12 @@ func getPhotoGalleryList(w http.ResponseWriter, r *http.Request) {
 }
 
 type PhotoGalleryList struct {
-	ID            int    `json:"id"`
-	TitleLatin    string `json:"title_latin"`
-	TitleCyrillic string `json:"title_cyrillic"`
-	CreatedAt     string `json:"created_at"`
-	UpdatedAt     string `json:"updated_at"`
+	ID            int                 `json:"id"`
+	TitleLatin    string              `json:"title_latin"`
+	TitleCyrillic string              `json:"title_cyrillic"`
+	CreatedAt     string              `json:"created_at"`
+	UpdatedAt     string              `json:"updated_at"`
+	Photos        []PhotoGalleryPhoto `json:"photos"`
 }
 
 func getPhotoGalleryPhotos(w http.ResponseWriter, r *http.Request) {
