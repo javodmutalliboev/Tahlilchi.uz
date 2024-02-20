@@ -165,6 +165,10 @@ func AdminRouter(r *mux.Router) *mux.Router {
 	photoGalleryRouter := adminRouter.PathPrefix("/photo-gallery").Subrouter()
 	photoGalleryRouter.HandleFunc("/add", middleware.Chain(addPhotoGallery, authPackage.AdminAuth())).Methods("POST")
 	photoGalleryRouter.HandleFunc("/list", middleware.Chain(getPhotoGalleryList, authPackage.AdminAuth())).Methods("GET")
+	// route to update photo gallery
+	photoGalleryRouter.HandleFunc("/update/{id}", middleware.Chain(updatePhotoGallery, authPackage.AdminAuth())).Methods("PATCH")
+	// route to delete photo gallery
+	photoGalleryRouter.HandleFunc("/delete/{id}", middleware.Chain(deletePhotoGallery, authPackage.AdminAuth())).Methods("DELETE")
 
 	photoGalleryPhotosRouter := photoGalleryRouter.PathPrefix("/{id}/photos").Subrouter()
 	photoGalleryPhotosRouter.HandleFunc("/add", middleware.Chain(photoGalleryAddPhotos, authPackage.AdminAuth())).Methods("POST")

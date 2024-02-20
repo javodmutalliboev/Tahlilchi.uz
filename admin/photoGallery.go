@@ -366,3 +366,103 @@ func deletePhotoGalleryPhoto(w http.ResponseWriter, r *http.Request) {
 
 	response.Res(w, "success", http.StatusOK, "photo gallery photo deleted")
 }
+
+// deletePhotoGallery is a handler to delete photo gallery
+func deletePhotoGallery(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	exists, err := photoGalleryExists(id)
+	if err != nil {
+		log.Printf("%v: deletePhotoGallery photoGalleryExists(id) error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if !*exists {
+		log.Printf("%v: deletePhotoGallery photoGalleryExists(id): %v", r.URL, *exists)
+		response.Res(w, "error", http.StatusBadRequest, "photo gallery not found")
+		return
+	}
+
+	database, err := db.DB()
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	_, err = database.Exec("DELETE FROM photo_gallery_photos WHERE photo_gallery = $1", id)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	_, err = database.Exec("DELETE FROM photo_gallery WHERE id = $1", id)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	response.Res(w, "success", http.StatusOK, "photo gallery deleted")
+}
+
+// updatePhotoGallery is a handler to update photo gallery
+func updatePhotoGallery(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	exists, err := photoGalleryExists(id)
+	if err != nil {
+		log.Printf("%v: updatePhotoGallery photoGalleryExists(id) error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	if !*exists {
+		log.Printf("%v: updatePhotoGallery photoGalleryExists(id): %v", r.URL, *exists)
+		response.Res(w, "error", http.StatusBadRequest, "photo gallery not found")
+		return
+	}
+
+	var p PhotoGallery
+	err = r.ParseForm()
+	if err != nil {
+		log.Printf("%v: %v", r.URL, err)
+		response.Res(w, "error", http.StatusBadRequest, err.Error())
+		return
+	}
+
+	database, err := db.DB()
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	p.TitleLatin = r.FormValue("title_latin")
+	if p.TitleLatin != "" {
+		_, err = database.Exec("UPDATE photo_gallery SET title_latin = $1, updated_at = NOW() WHERE id = $2", p.TitleLatin, id)
+		if err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+	}
+
+	p.TitleCyrillic = r.FormValue("title_cyrillic")
+	if p.TitleCyrillic != "" {
+		_, err = database.Exec("UPDATE photo_gallery SET title_cyrillic = $1, updated_at = NOW() WHERE id = $2", p.TitleCyrillic, id)
+		if err != nil {
+			log.Printf("%v: error: %v", r.URL, err)
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			return
+		}
+	}
+
+	response.Res(w, "success", http.StatusOK, "photo gallery updated")
+}
