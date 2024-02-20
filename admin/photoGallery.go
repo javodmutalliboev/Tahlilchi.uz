@@ -200,7 +200,7 @@ func getPhotoGalleryList(w http.ResponseWriter, r *http.Request) {
 	var photoGalleryList []PhotoGalleryList
 	for rows.Next() {
 		var photoGallery PhotoGalleryList
-		if err := rows.Scan(&photoGallery.ID, &photoGallery.TitleLatin, &photoGallery.TitleCyrillic, &photoGallery.CreatedAt, &photoGallery.UpdatedAt); err != nil {
+		if err := rows.Scan(&photoGallery.ID, &photoGallery.TitleLatin, &photoGallery.CreatedAt, &photoGallery.UpdatedAt, &photoGallery.TitleCyrillic); err != nil {
 			log.Printf("%v: error: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
 			return
