@@ -38,7 +38,7 @@ func getPhotoGalleryList(w http.ResponseWriter, r *http.Request) {
 	}
 	defer database.Close()
 
-	rows, err := database.Query("SELECT * FROM photo_gallery ORDER BY id DESC LIMIT $1 OFFSET $2", limit, start)
+	rows, err := database.Query("SELECT id, title_latin, title_cyrillic FROM photo_gallery ORDER BY id DESC LIMIT $1 OFFSET $2", limit, start)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
