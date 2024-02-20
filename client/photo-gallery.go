@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"Tahlilchi.uz/db"
 	"Tahlilchi.uz/response"
@@ -150,6 +151,39 @@ func getPhotoGalleryPhotos(w http.ResponseWriter, r *http.Request) {
 }
 
 type PhotoGalleryPhoto struct {
-	ID       int    `json:"id"`
-	FileName string `json:"file_name"`
+	ID           int       `json:"id"`
+	PhotoGallery int       `json:"photo_gallery"`
+	FileName     string    `json:"file_name"`
+	CreatedAt    time.Time `json:"created_at"`
+	File         []byte    `json:"file"`
+}
+
+// getPhotoGalleryPhoto is a handler to get photo gallery photo
+func getPhotoGalleryPhoto(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	photo_gallery := vars["id"]
+	id := vars["photo_id"]
+
+	// open a database connection
+	database, err := db.DB()
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	var photoGalleryPhoto PhotoGalleryPhoto
+	err = database.QueryRow("SELECT id, photo_gallery, file_name, created_at, file FROM photo_gallery_photos WHERE photo_gallery = $1 AND id = $2", photo_gallery, id).Scan(&photoGalleryPhoto.ID, &photoGalleryPhoto.PhotoGallery, &photoGalleryPhoto.FileName, &photoGalleryPhoto.CreatedAt, &photoGalleryPhoto.File)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	// send file
+	contentType := http.DetectContentType(photoGalleryPhoto.File)
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Content-Length", strconv.Itoa(len(photoGalleryPhoto.File)))
+	w.Write(photoGalleryPhoto.File)
 }

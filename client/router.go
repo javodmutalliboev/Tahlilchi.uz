@@ -71,6 +71,8 @@ func ClientRouter(r *mux.Router) {
 	photoGalleryRouter := clientRouter.PathPrefix("/photo-gallery").Subrouter()
 	photoGalleryRouter.HandleFunc("/list", getPhotoGalleryList).Methods("GET")
 	photoGalleryRouter.HandleFunc("/{id}/photos", getPhotoGalleryPhotos).Methods("GET")
+	// route to get photo gallery photo
+	photoGalleryRouter.HandleFunc("/{id}/photo/{photo_id}", getPhotoGalleryPhoto).Methods("GET")
 
 	contactRouter := clientRouter.PathPrefix("/contact").Subrouter()
 	contactRouter.HandleFunc("", getAdminContact).Methods("GET")
