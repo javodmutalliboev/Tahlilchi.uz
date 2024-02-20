@@ -320,3 +320,27 @@ func getPhotoGalleryPhoto(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Length", strconv.Itoa(len(photoGalleryPhoto.File)))
 	w.Write(photoGalleryPhoto.File)
 }
+
+// deletePhotoGalleryPhoto is a handler to delete photo gallery photo
+func deletePhotoGalleryPhoto(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	photo_gallery := vars["id"]
+	id := vars["photo_id"]
+
+	database, err := db.DB()
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+	defer database.Close()
+
+	_, err = database.Exec("DELETE FROM photo_gallery_photos WHERE photo_gallery = $1 AND id = $2", photo_gallery, id)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	response.Res(w, "success", http.StatusOK, "photo gallery photo deleted")
+}
