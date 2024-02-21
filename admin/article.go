@@ -1193,6 +1193,15 @@ func deleteArticle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// set null to the related column of the articles where related = id
+	_, err = db.Exec("UPDATE articles SET related = NULL WHERE related = $1", id)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	// delete the article from the articles table
 	// Prepare the SQL statement
 	stmt, err := db.Prepare("DELETE FROM articles WHERE id=$1")
 	if err != nil {
