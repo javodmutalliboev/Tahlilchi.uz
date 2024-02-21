@@ -102,7 +102,7 @@ func photoGalleryAddPhotos(w http.ResponseWriter, r *http.Request) {
 
 	// Get a reference to the fileHeaders.
 	// They are accessible only after ParseMultipartForm is called.
-	files := r.MultipartForm.File["photo"] // "photo" is the key of the input form
+	files := r.MultipartForm.File["photo[]"] // "photo" is the key of the input form
 
 	for _, fileHeader := range files {
 		// Check if the file is an image
