@@ -1194,7 +1194,7 @@ func deleteArticle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// set null to the related column of the articles where related = id
-	_, err = db.Exec("UPDATE articles SET related = NULL WHERE related = $1", id)
+	_, err = db.Exec("UPDATE articles SET related = NULL, updated_at = NOW() WHERE related = $1", id)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
