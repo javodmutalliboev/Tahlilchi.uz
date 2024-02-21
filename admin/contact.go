@@ -65,7 +65,7 @@ func appealList(w http.ResponseWriter, r *http.Request) {
 	var appeals []Appeal
 	for rows.Next() {
 		var a Appeal
-		if err := rows.Scan(&a.ID, &a.Name, &a.Surname, &a.PhoneNumber, &a.Message, &a.CreatedAt, &a.Picture, &a.Video); err != nil {
+		if err := rows.Scan(&a.ID, &a.Name, &a.Surname, &a.PhoneNumber, &a.Message, &a.CreatedAt); err != nil {
 			log.Printf("%v: error: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
 			return
