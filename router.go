@@ -20,7 +20,7 @@ func Router() {
 	client.ClientRouter(r)
 
 	headersOk := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type", "Authorization"})
-	originsOk := handlers.AllowedOrigins([]string{os.Getenv("ADMINCLIENT")})
+	originsOk := handlers.AllowedOrigins([]string{os.Getenv("ADMINCLIENT"), os.Getenv("CLIENT")})
 	methodsOk := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PATCH", "DELETE", "OPTIONS"})
 	credentials := handlers.AllowCredentials()
 
