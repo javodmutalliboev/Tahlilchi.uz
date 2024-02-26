@@ -218,11 +218,18 @@ func sendToTBot(r *http.Request, id int) {
 		toolkit.LogError(r, fmt.Errorf("sendToTBot appeal id: %v: error parsing the chat id: %v", id, err))
 	}
 
-	msg := tgbotapi.NewMessage(chatID, fmt.Sprintf("Янги мурожаат келди:\nМурожаатчининг исми: %s\nФамилияси: %s\nТелефон рақами: %s\nХабар: %s", appeal.Name, appeal.Surname, appeal.PhoneNumber, appeal.Message))
+	// List of chat IDs to send the message to
+	chatIDs := []int64{chatID}
 
-	_, err = bot.Send(msg)
-	if err != nil {
-		toolkit.LogError(r, fmt.Errorf("sendToTBot appeal id: %v: error sending the message to the Telegram bot: %v", id, err))
+	// Send the message to the Telegram bot
+	for _, chatID := range chatIDs {
+		msg := tgbotapi.NewMessage(chatID, fmt.Sprintf("Янги мурожаат келди:\nМурожаатчининг исми: %s\nФамилияси: %s\nТелефон рақами: %s\nХабар: %s", appeal.Name, appeal.Surname, appeal.PhoneNumber, appeal.Message))
+
+		// Send the message
+		_, err = bot.Send(msg)
+		if err != nil {
+			toolkit.LogError(r, fmt.Errorf("sendToTBot appeal id: %v: error sending the message to the Telegram bot: %v", id, err))
+		}
 	}
 
 	const fileSizeLimit int = 50 * 1024 * 1024 // 50MB
@@ -236,18 +243,22 @@ func sendToTBot(r *http.Request, id int) {
 	if len(appeal.Picture) > 0 {
 		if len(appeal.Picture) > fileSizeLimit {
 			message := fmt.Sprintf("[%s %s %s] дан мурожаатда телеграм бот 50МБ ҳажм чегарасидан ошган расм келди. Уни телеграм бот юклай олмайди. Илтимос уни вебсайт администратор панелида коʻринг.", appeal.Name, appeal.Surname, appeal.PhoneNumber)
-			msg := tgbotapi.NewMessage(chatID, message)
-			_, err = bot.Send(msg)
-			if err != nil {
-				toolkit.LogError(r, fmt.Errorf("sendToTBot len(appeal.Picture) > fileSizeLimit appeal id: %v: error sending the message to the Telegram bot: %v", id, err))
+			for _, chatID := range chatIDs {
+				msg := tgbotapi.NewMessage(chatID, message)
+				_, err = bot.Send(msg)
+				if err != nil {
+					toolkit.LogError(r, fmt.Errorf("sendToTBot: chatID: %v: len(appeal.Picture) > fileSizeLimit appeal id: %v: error sending the message to the Telegram bot chat: %v", chatID, id, err))
+				}
 			}
 		} else {
-			// Send the picture
-			pic := tgbotapi.NewPhotoUpload(chatID, tgbotapi.FileBytes{Name: "picture", Bytes: appeal.Picture})
-			pic.Caption = fmt.Sprintf("Мурожаатчининг исми: %s\nФамилияси: %s\nТелефон рақами: %s", appeal.Name, appeal.Surname, appeal.PhoneNumber)
-			_, err = bot.Send(pic)
-			if err != nil {
-				toolkit.LogError(r, fmt.Errorf("sendToTBot appeal id: %v: error sending the picture to the Telegram bot: %v", id, err))
+			for _, chatID := range chatIDs {
+				// Send the picture
+				pic := tgbotapi.NewPhotoUpload(chatID, tgbotapi.FileBytes{Name: "picture", Bytes: appeal.Picture})
+				pic.Caption = fmt.Sprintf("Мурожаатчининг исми: %s\nФамилияси: %s\nТелефон рақами: %s", appeal.Name, appeal.Surname, appeal.PhoneNumber)
+				_, err = bot.Send(pic)
+				if err != nil {
+					toolkit.LogError(r, fmt.Errorf("sendToTBot: chatID: %v: appeal id: %v: error sending the picture to the Telegram bot chat: %v", chatID, id, err))
+				}
 			}
 		}
 	}
@@ -261,18 +272,22 @@ func sendToTBot(r *http.Request, id int) {
 	if len(appeal.Video) > 0 {
 		if len(appeal.Video) > fileSizeLimit {
 			message := fmt.Sprintf("[%s %s %s] дан мурожаатда телеграм бот 50МБ ҳажм чегарасидан ошган видео келди. Уни телеграм бот юклай олмайди. Илтимос уни вебсайт администратор панелида коʻринг.", appeal.Name, appeal.Surname, appeal.PhoneNumber)
-			msg := tgbotapi.NewMessage(chatID, message)
-			_, err = bot.Send(msg)
-			if err != nil {
-				toolkit.LogError(r, fmt.Errorf("sendToTBot len(appeal.Video) > fileSizeLimit appeal id: %v: error sending the message to the Telegram bot: %v", id, err))
+			for _, chatID := range chatIDs {
+				msg := tgbotapi.NewMessage(chatID, message)
+				_, err = bot.Send(msg)
+				if err != nil {
+					toolkit.LogError(r, fmt.Errorf("sendToTBot: chatID: %v: len(appeal.Video) > fileSizeLimit appeal id: %v: error sending the message to the Telegram bot chat: %v", chatID, id, err))
+				}
 			}
 		} else {
-			// Send the video
-			vid := tgbotapi.NewVideoUpload(chatID, tgbotapi.FileBytes{Name: "video", Bytes: appeal.Video})
-			vid.Caption = fmt.Sprintf("Мурожаатчининг исми: %s\nФамилияси: %s\nТелефон рақами: %s", appeal.Name, appeal.Surname, appeal.PhoneNumber)
-			_, err = bot.Send(vid)
-			if err != nil {
-				toolkit.LogError(r, fmt.Errorf("sendToTBot appeal id: %v: error sending the video to the Telegram bot: %v", id, err))
+			for _, chatID := range chatIDs {
+				// Send the video
+				vid := tgbotapi.NewVideoUpload(chatID, tgbotapi.FileBytes{Name: "video", Bytes: appeal.Video})
+				vid.Caption = fmt.Sprintf("Мурожаатчининг исми: %s\nФамилияси: %s\nТелефон рақами: %s", appeal.Name, appeal.Surname, appeal.PhoneNumber)
+				_, err = bot.Send(vid)
+				if err != nil {
+					toolkit.LogError(r, fmt.Errorf("sendToTBot: chatID: %v: appeal id: %v: error sending the video to the Telegram bot chat: %v", chatID, id, err))
+				}
 			}
 		}
 	}
