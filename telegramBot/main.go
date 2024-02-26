@@ -23,6 +23,11 @@ func ChatID() {
 		log.Panic(err)
 	}
 
+	_, err = bot.RemoveWebhook()
+	if err != nil {
+		log.Panic(err)
+	}
+
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 

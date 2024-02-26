@@ -213,13 +213,18 @@ func sendToTBot(r *http.Request, id int) {
 	}
 
 	// send message to the telegram bot
-	chatID, err := strconv.ParseInt(os.Getenv("TELEGRAM_CHAT_ID"), 10, 64)
+	chatIDBoss, err := strconv.ParseInt(os.Getenv("TELEGRAM_CHAT_ID_BOSS"), 10, 64)
 	if err != nil {
-		toolkit.LogError(r, fmt.Errorf("sendToTBot appeal id: %v: error parsing the chat id: %v", id, err))
+		toolkit.LogError(r, fmt.Errorf("sendToTBot appeal id: %v: error parsing Boss chat id: %v", id, err))
+	}
+
+	chatIDAdmin, err := strconv.ParseInt(os.Getenv("TELEGRAM_CHAT_ID_ADMIN"), 10, 64)
+	if err != nil {
+		toolkit.LogError(r, fmt.Errorf("sendToTBot appeal id: %v: error parsing admin chat id: %v", id, err))
 	}
 
 	// List of chat IDs to send the message to
-	chatIDs := []int64{chatID}
+	chatIDs := []int64{chatIDBoss, chatIDAdmin}
 
 	// Send the message to the Telegram bot
 	for _, chatID := range chatIDs {
