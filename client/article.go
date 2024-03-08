@@ -62,6 +62,7 @@ type Article struct {
 	DescriptionCyrillic string         `json:"description_cyrillic"`
 	Videos              pq.StringArray `json:"videos"`
 	Tags                pq.StringArray `json:"tags"`
+	CreatedAt           string         `json:"created_at"`
 }
 
 // getArticleListByCategory is a handler to get article list by category
@@ -94,7 +95,7 @@ func getArticleListByCategory(w http.ResponseWriter, r *http.Request) {
 	}
 	defer database.Close()
 
-	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, videos, tags FROM articles WHERE category = $1 AND archived = false AND completed = true ORDER BY id DESC LIMIT $2 OFFSET $3", category, limit, start)
+	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, videos, tags, created_at FROM articles WHERE category = $1 AND archived = false AND completed = true ORDER BY id DESC LIMIT $2 OFFSET $3", category, limit, start)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -105,7 +106,7 @@ func getArticleListByCategory(w http.ResponseWriter, r *http.Request) {
 	var articles []Article
 	for rows.Next() {
 		var article Article
-		err := rows.Scan(&article.ID, &article.TitleLatin, &article.DescriptionLatin, &article.TitleCyrillic, &article.DescriptionCyrillic, &article.Videos, &article.Tags)
+		err := rows.Scan(&article.ID, &article.TitleLatin, &article.DescriptionLatin, &article.TitleCyrillic, &article.DescriptionCyrillic, &article.Videos, &article.Tags, &article.CreatedAt)
 		if err != nil {
 			log.Printf("%v: error: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -153,7 +154,7 @@ func getArticleListByRelated(w http.ResponseWriter, r *http.Request) {
 	}
 	defer database.Close()
 
-	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, videos, tags FROM articles WHERE related = $1 AND archived = false AND completed = true ORDER BY id DESC LIMIT $2 OFFSET $3", related, limit, start)
+	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, videos, tags, created_at FROM articles WHERE related = $1 AND archived = false AND completed = true ORDER BY id DESC LIMIT $2 OFFSET $3", related, limit, start)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -164,7 +165,7 @@ func getArticleListByRelated(w http.ResponseWriter, r *http.Request) {
 	var articles []Article
 	for rows.Next() {
 		var article Article
-		err := rows.Scan(&article.ID, &article.TitleLatin, &article.DescriptionLatin, &article.TitleCyrillic, &article.DescriptionCyrillic, &article.Videos, &article.Tags)
+		err := rows.Scan(&article.ID, &article.TitleLatin, &article.DescriptionLatin, &article.TitleCyrillic, &article.DescriptionCyrillic, &article.Videos, &article.Tags, &article.CreatedAt)
 		if err != nil {
 			log.Printf("%v: error: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -210,7 +211,7 @@ func getAllArticles(w http.ResponseWriter, r *http.Request) {
 	defer database.Close()
 
 	// Get the slice of posts
-	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, videos, tags FROM articles WHERE archived = false AND completed = true ORDER BY id DESC LIMIT $1 OFFSET $2", limit, start)
+	rows, err := database.Query("SELECT id, title_latin, description_latin, title_cyrillic, description_cyrillic, videos, tags, created_at FROM articles WHERE archived = false AND completed = true ORDER BY id DESC LIMIT $1 OFFSET $2", limit, start)
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
 		response.Res(w, "error", http.StatusInternalServerError, "server error")
@@ -221,7 +222,7 @@ func getAllArticles(w http.ResponseWriter, r *http.Request) {
 	var articles []Article
 	for rows.Next() {
 		var article Article
-		err := rows.Scan(&article.ID, &article.TitleLatin, &article.DescriptionLatin, &article.TitleCyrillic, &article.DescriptionCyrillic, &article.Videos, &article.Tags)
+		err := rows.Scan(&article.ID, &article.TitleLatin, &article.DescriptionLatin, &article.TitleCyrillic, &article.DescriptionCyrillic, &article.Videos, &article.Tags, &article.CreatedAt)
 		if err != nil {
 			log.Printf("%v: error: %v", r.URL, err)
 			response.Res(w, "error", http.StatusInternalServerError, "server error")
