@@ -567,3 +567,66 @@ func getNewsPostCoverImage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Length", strconv.Itoa(len(CoverImage)))
 	w.Write(CoverImage)
 }
+
+// getNewsRegionList is a route handler function to get the news region list
+// It takes a http.ResponseWriter and a http.Request as its parameters
+// It returns nothing
+func getNewsRegionList(w http.ResponseWriter, r *http.Request) {
+	// database connection
+	database, err := db.DB()
+	// check if there is an error
+	if err != nil {
+		// log the error
+		log.Printf("%v: error: %v", r.URL, err)
+		// respond with the error
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		// return
+		return
+	}
+	// close the database connection
+	defer database.Close()
+	// get the news region list from the database: table news_regions
+	rows, err := database.Query("SELECT * FROM news_regions ORDER BY id")
+	// check if there is an error
+	if err != nil {
+		// log the error
+		log.Printf("%v: error: %v", r.URL, err)
+		// respond with the error
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		// return
+		return
+	}
+	// close the rows
+	defer rows.Close()
+	// create a slice of news regions
+	var regions []Region
+	// loop through the rows
+	for rows.Next() {
+		// create a new region
+		var region Region
+		// scan the row into the region
+		err := rows.Scan(&region.ID, &region.NameLatin, &region.DescriptionLatin, &region.NameCyrillic, &region.DescriptionCyrillic)
+		// check if there is an error
+		if err != nil {
+			// log the error
+			log.Printf("%v: error: %v", r.URL, err)
+			// respond with the error
+			response.Res(w, "error", http.StatusInternalServerError, "server error")
+			// return
+			return
+		}
+		// append the region to the slice of regions
+		regions = append(regions, region)
+	}
+	// respond with the success and the slice of regions
+	response.Res(w, "success", http.StatusOK, regions)
+}
+
+// Region is a struct to represent a news region
+type Region struct {
+	ID                  int    `json:"id"`
+	NameLatin           string `json:"name_latin"`
+	DescriptionLatin    string `json:"description_latin"`
+	NameCyrillic        string `json:"name_cyrillic"`
+	DescriptionCyrillic string `json:"description_cyrillic"`
+}

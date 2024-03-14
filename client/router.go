@@ -11,6 +11,8 @@ func ClientRouter(r *mux.Router) {
 	newsRouter := clientRouter.PathPrefix("/news").Subrouter()
 	newsRouter.HandleFunc("/category/{category}", getNewsByCategory).Methods("GET")
 	newsRouter.HandleFunc("/subcategory/{subcategory}", getNewsBySubCategory).Methods("GET")
+	// get news region list
+	newsRouter.HandleFunc("/region/list", getNewsRegionList).Methods("GET")
 	newsRouter.HandleFunc("/region/{region}", getNewsByRegion).Methods("GET")
 	newsRouter.HandleFunc("/top", getTopNews).Methods("GET")
 	newsRouter.HandleFunc("/latest", getLatestNews).Methods("GET")
