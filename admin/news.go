@@ -1097,6 +1097,15 @@ func deleteNewsPost(w http.ResponseWriter, r *http.Request) {
 	}
 	defer db.Close()
 
+	// first delete news post comments: table news_post_comments, fk news_post
+	_, err = db.Exec("DELETE FROM news_post_comments WHERE news_post = $1", id)
+	if err != nil {
+		log.Printf("%v: error: %v", r.URL, err)
+		response.Res(w, "error", http.StatusInternalServerError, "server error")
+		return
+	}
+
+	// then delete news post
 	stmt, err := db.Prepare("DELETE FROM news_posts WHERE id=$1")
 	if err != nil {
 		log.Printf("%v: error: %v", r.URL, err)
